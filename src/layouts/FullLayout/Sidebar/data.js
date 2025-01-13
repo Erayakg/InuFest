@@ -35,6 +35,11 @@ const Menuitems = [
     href: "/dashboards/dashboard1",
   },
   {
+    title: "profile",
+    icon: DashboardOutlinedIcon,
+    href: "/profile",
+  },
+  {
     title: "Buttons",
     icon: AspectRatioOutlinedIcon,
     href: "/form-elements/button",
