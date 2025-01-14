@@ -7,6 +7,7 @@ import ProjectList from "../views/ProjectList/ProjectList";
 import ProjectEdit from "../views/ProjectEdit/ProjectEdit.js";
 import ProjectDetail from "../views/ProjectDetail/ProjectDetail";
 import Profile from "../views/Profile/Profile";
+import AdminPage from "../views/pages/AdminPage.js";
 /****Layouts*****/
 const FullLayout = lazy(() => import("../layouts/FullLayout/FullLayout.js"));
 /****End Layouts*****/
@@ -51,7 +52,7 @@ const ThemeRoutes = [
       { path: "/projects/edit/:id", element: <ProjectEdit /> },
       {path: "/projects/detail/:id", element: <ProjectDetail />},
       {path: "/profile", element: <Profile />},
-
+      {path: "/admin", element: <AdminPage />},
     ],
   },
   {
