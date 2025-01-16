@@ -18,6 +18,8 @@ import {
   useMediaQuery,
   Grid,
   CircularProgress,
+  AvatarGroup,
+  Avatar,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -49,7 +51,7 @@ const ProjectList = () => {
         return;
       }
 
-      const response = await axios.get(`v1/project/student/${userId}`, {
+      const response = await axios.get(`v1/project/student/getAllProject/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -77,15 +79,11 @@ const ProjectList = () => {
   };
 
   const handleView = (id) => {
-    console.log('View project:', id);
-    // Görüntüleme işlemleri için yönlendirme yapılabilir
-    // navigate(`/project/${id}`);
+    navigate(`/projectdetail/${id}`);
   };
 
   const handleEdit = (id) => {
-    console.log('Edit project:', id);
-    // Düzenleme işlemleri için yönlendirme yapılabilir
-    // navigate(`/project/edit/${id}`);
+    navigate(`/projectedit/${id}`);
   };
 
   const handleDelete = async (id) => {
@@ -100,6 +98,26 @@ const ProjectList = () => {
       setError('Proje silinirken bir hata oluştu');
     }
   };
+
+  // Öğrenci avatarları için renk üreteci
+  const stringToColor = (string) => {
+    let hash = 0;
+    for (let i = 0; i < string.length; i++) {
+      hash = string.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+      const value = (hash >> (i * 8)) & 0xFF;
+      color += ('00' + value.toString(16)).substr(-2);
+    }
+    return color;
+  };
+
+  // Öğrenci avatarları için stil
+  const getAvatarStyle = (name) => ({
+    bgcolor: stringToColor(name),
+    cursor: 'pointer',
+  });
 
   if (loading) {
     return (
@@ -152,9 +170,28 @@ const ProjectList = () => {
           <Typography variant="caption" color="textSecondary">
             Öğrenciler
           </Typography>
-          <Typography variant="body2">
-            {project.students.map(student => student.username).join(", ")}
-          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+            {project.students.map((student) => (
+              <Tooltip
+                key={student.id}
+                title={`Öğrenci No: ${student.studentNumber}`}
+                arrow
+              >
+                <Chip
+                  label={student.username}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    borderRadius: '16px',
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                    },
+                  }}
+                />
+              </Tooltip>
+            ))}
+          </Box>
         </Grid>
         <Grid item xs={6}>
           <Typography variant="caption" color="textSecondary">
@@ -223,7 +260,28 @@ const ProjectList = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        {project.students.map(student => student.username).join(", ")}
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {project.students.map((student, index) => (
+                            <Tooltip
+                              key={student.id}
+                              title={`Öğrenci No: ${student.studentNumber}`}
+                              arrow
+                            >
+                              <Chip
+                                label={student.username}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  borderRadius: '16px',
+                                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                  '&:hover': {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                                  },
+                                }}
+                              />
+                            </Tooltip>
+                          ))}
+                        </Box>
                       </TableCell>
                       <TableCell>
                         {new Date(project.createDate).toLocaleDateString()}
