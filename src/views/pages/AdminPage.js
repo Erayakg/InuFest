@@ -39,17 +39,19 @@ const AdminPage = () => {
   const [showMentorForm, setShowMentorForm] = useState(false);
   const [newMentorData, setNewMentorData] = useState({
     name: '',
-    email: '',
-    expertise: '',
-    phone: ''
+    mail: '',
+    categoryId: '',
+    phoneNumber: ''
   });
   const [projectsWithMentor, setProjectsWithMentor] = useState([]);
   const [projectsWithoutMentor, setProjectsWithoutMentor] = useState([]);
   const [mentors, setMentors] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     fetchMentors();
     fetchAllProjects();
+    fetchCategories();
   }, []);
 
   const fetchAllProjects = async () => {
@@ -89,6 +91,15 @@ const AdminPage = () => {
       setMentors(response.data.data);
     } catch (error) {
       console.error('Error fetching mentors:', error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get('/category');
+      setCategories(response.data.data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
     }
   };
 
@@ -134,7 +145,7 @@ const AdminPage = () => {
     try {
       const response = await axios.post('/referee/addReferee', newMentorData);
       setMentors([...mentors, response.data.data]);
-      setNewMentorData({ name: '', email: '', expertise: '', phone: '' });
+      setNewMentorData({ name: '', mail: '', categoryId: '', phoneNumber: '' });
       setShowMentorForm(false); // Close the form
     } catch (error) {
       console.error('Error adding mentor:', error);
@@ -224,29 +235,36 @@ const AdminPage = () => {
                     <TextField
                       fullWidth
                       label="E-posta"
-                      name="email"
+                      name="mail"
                       type="email"
-                      value={newMentorData.email}
+                      value={newMentorData.mail}
                       onChange={handleMentorInputChange}
                       required
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Uzmanlık Alanı"
-                      name="expertise"
-                      value={newMentorData.expertise}
-                      onChange={handleMentorInputChange}
-                      required
-                    />
+                    <FormControl fullWidth required>
+                      <InputLabel>Uzmanlık Alanı</InputLabel>
+                      <Select
+                        name="categoryId"
+                        value={newMentorData.categoryId}
+                        onChange={handleMentorInputChange}
+                        label="Uzmanlık Alanı"
+                      >
+                        {categories.map(category => (
+                          <MenuItem key={category.id} value={category.id}>
+                            {category.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
                       label="Telefon"
-                      name="phone"
-                      value={newMentorData.phone}
+                      name="phoneNumber"
+                      value={newMentorData.phoneNumber}
                       onChange={handleMentorInputChange}
                       required
                     />
@@ -265,7 +283,7 @@ const AdminPage = () => {
                         color="error"
                         onClick={() => {
                           setShowMentorForm(false);
-                          setNewMentorData({ name: '', email: '', expertise: '', phone: '' });
+                          setNewMentorData({ name: '', mail: '', categoryId: '', phoneNumber: '' });
                         }}
                       >
                         İptal
