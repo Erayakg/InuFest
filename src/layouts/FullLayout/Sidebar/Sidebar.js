@@ -19,6 +19,18 @@ const Sidebar = (props) => {
   const pathDirect = pathname;
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up("lg"));
 
+  const filteredMenuItems = React.useMemo(() => {
+    const userRole = localStorage.getItem("role");
+    const isGuest = !userRole;
+
+    return Menuitems.filter(item => {
+      if (isGuest) {
+        return item.roles.includes("guest");
+      }
+      return item.roles.includes(userRole);
+    });
+  }, []);
+
   const handleClick = (index) => {
     if (open === index) {
       setOpen((prevopen) => !prevopen);
@@ -67,7 +79,7 @@ const Sidebar = (props) => {
         }}
       >
         <List>
-          {Menuitems.map((item, index) => {
+          {filteredMenuItems.map((item, index) => {
             return (
               <List component="li" disablePadding key={item.title}>
                 <ListItem
