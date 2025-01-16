@@ -8,27 +8,46 @@ import {
   Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Login = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: "",
+    mail: "",
     password: "",
   });
+  const [error, setError] = useState(null);
 
   const handleChange = (e) => {
-    setFormData({
+    setFormData({ 
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // API çağrısı burada yapılacak
-    console.log(formData);
-    // Başarılı giriş sonrası dashboard'a yönlendirme
-    navigate("/dashboards/dashboard1");
+    try {
+      const response = await axios.post('v1/auth/login', {
+        mail: formData.mail,
+        password: formData.password
+      });
+      console.log(response.data.data);
+      
+      if (response.data.success) {
+        localStorage.setItem('token', response.data.data.accessToken);
+        localStorage.setItem('username', response.data.data.username);
+        localStorage.setItem('role', response.data.data.role);
+        localStorage.setItem('userId', response.data.data.userId);
+        
+        navigate("/dashboards/dashboard1");
+      } else {
+        setError(response.data.message);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Giriş yapılırken bir hata oluştu');
+      console.error('Login error:', err);
+    }
   };
 
   return (
@@ -51,11 +70,12 @@ const Login = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Kullanıcı Adı"
-                name="username"
-                value={formData.username}
+                label="E-posta"
+                name="mail"
+                value={formData.mail}
                 onChange={handleChange}
                 required
+                type="email"
               />
             </Grid>
             <Grid item xs={12}>
@@ -69,6 +89,13 @@ const Login = () => {
                 required
               />
             </Grid>
+            {error && (
+              <Grid item xs={12}>
+                <Typography color="error" textAlign="center">
+                  {error}
+                </Typography>
+              </Grid>
+            )}
             <Grid item xs={12}>
               <Button
                 type="submit"
