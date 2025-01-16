@@ -51,6 +51,22 @@ const Sidebar = (props) => {
     }
   };
 
+  // Menü öğelerini filtreleme
+  const filteredMenuItems = React.useMemo(() => {
+    const token = localStorage.getItem('token');
+    const userRole = localStorage.getItem('role');
+
+    return Menuitems.filter(item => {
+      // Kullanıcı giriş yapmışsa (token varsa)
+      if (token) {
+        // guest rolüne sahip öğeleri gösterme (giriş yap, kayıt ol gibi)
+        return !item.roles.includes('guest') && item.roles.includes(userRole);
+      }
+      // Kullanıcı giriş yapmamışsa sadece guest rolüne sahip öğeleri göster
+      return item.roles.includes('guest');
+    });
+  }, []); // Component mount olduğunda bir kere çalışır
+
   const SidebarContent = (
     <Box sx={{ 
       p: 3,
@@ -91,7 +107,7 @@ const Sidebar = (props) => {
         }}
       >
         <List>
-          {Menuitems.map((item, index) => {
+          {filteredMenuItems.map((item, index) => {
             if (item.href === '/logout') {
               return (
                 <ListItem
