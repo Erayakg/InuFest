@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  Grid,
-  Box,
-  Card,
-  TextField,
-  Button,
-  Typography,
-} from "@mui/material";
+import { Grid, Box, Card, TextField, Button, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -17,9 +10,10 @@ const Login = () => {
     password: "",
   });
   const [error, setError] = useState(null);
+  const [open, setOpen] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ 
+    setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
@@ -27,26 +21,49 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
     try {
-      const response = await axios.post('v1/  auth/login', {
+      const response = await axios.post("http://localhost:8080/v1/auth/login", {
         mail: formData.mail,
-        password: formData.password
+        password: formData.password,
       });
-      console.log(response.data.data);
-      
-      if (response.data.success) {
-        localStorage.setItem('token', response.data.data.accessToken);
-        localStorage.setItem('username', response.data.data.username);
-        localStorage.setItem('role', response.data.data.role);
-        localStorage.setItem('userId', response.data.data.userId);
-        
+
+      if (response.status === 200) {
+        localStorage.setItem("token", response.data.accessToken);
+        localStorage.setItem("username", response.data.username);
+        localStorage.setItem("role", response.data.role);
+        localStorage.setItem("userId", response.data.userId);
+
         navigate("/dashboards/dashboard1");
-      } else {
-        setError(response.data.message);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Giriş yapılırken bir hata oluştu');
-      console.error('Login error:', err);
+      if (err.response?.status === 403) {
+        setOpen(true); // Pop-up'u aç
+      } else {
+        setError(err.response?.data?.message || "Mail adresi veya şifre yanlış.");
+      }
+    }
+  };
+
+  const handleDialogClose = async (confirm) => {
+    setOpen(false); // Pop-up'u kapat
+    if (confirm) {
+      try {
+        const verificationResponse = await axios.post(
+          "http://localhost:8080/v1/verification/send-email-code",
+          null,
+          { params: { email: formData.mail } }
+        );
+
+        if (verificationResponse.status === 200) {
+          alert("Doğrulama e-postası gönderildi. Lütfen e-postanızı kontrol edin!");
+          navigate("/verify-email", { state: { email: formData.mail } });
+        } else {
+          setError(verificationResponse.data?.message || "Doğrulama işlemi başarısız oldu.");
+        }
+      } catch (verificationError) {
+        setError(verificationError.response?.data?.message || "E-posta doğrulama hatası oluştu.");
+      }
     }
   };
 
@@ -119,8 +136,30 @@ const Login = () => {
           </Grid>
         </form>
       </Card>
+
+      <Dialog
+        open={open}
+        onClose={() => handleDialogClose(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Doğrulama Gerekli"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Sisteme giriş yapmak için mail adresinizi doğrulamanız gerekiyor. Doğrulama e-postası gönderilsin mi?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => handleDialogClose(false)} color="primary">
+            İptal
+          </Button>
+          <Button onClick={() => handleDialogClose(true)} color="primary" autoFocus>
+            Gönder
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
-export default Login; 
+export default Login;

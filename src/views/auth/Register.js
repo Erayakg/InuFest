@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  Grid,
-  Box,
-  Card,
-  TextField,
-  Button,
-  Typography,
-  MenuItem,
-} from "@mui/material";
+import { Grid, Box, Card, TextField, Button, Typography, MenuItem, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 const Register = () => {
@@ -22,6 +14,9 @@ const Register = () => {
     classNumber: "",
     phoneNumber: "",
   });
+  const [error, setError] = useState({});
+  const [open, setOpen] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
 
   const handleChange = (e) => {
     setFormData({
@@ -30,8 +25,28 @@ const Register = () => {
     });
   };
 
+  const validate = () => {
+    const newError = {};
+    if (!formData.userName) newError.userName = "Kullanıcı adı gerekli";
+    if (!formData.password || formData.password.length < 6) newError.password = "Şifre en az 6 karakter olmalı";
+    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) newError.email = "Geçerli bir e-posta girin";
+    if (!formData.phoneNumber || !/^[0-9]{11}$/.test(formData.phoneNumber)) newError.phoneNumber = "Telefon numarası 11 haneli olmalı";
+    if (!formData.studentNumber || !/^[0-9]{11}$/.test(formData.studentNumber)) newError.studentNumber = "Öğrenci numarası 11 haneli olmalı";
+    if (!formData.faculty) newError.faculty = "Fakülte seçimi gerekli";
+    if (!formData.department) newError.department = "Bölüm seçimi gerekli";
+    if (!formData.classNumber) newError.classNumber = "Sınıf seçimi gerekli";
+    return newError;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const newError = validate();
+    if (Object.keys(newError).length > 0) {
+      setError(newError);
+      return;
+    }
+    setError({});
+
     try {
       const response = await fetch("http://localhost:8080/v1/auth/register", {
         method: "POST",
@@ -44,7 +59,6 @@ const Register = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Email doğrulama kodunu göndermek için istekte bulunun
         const sendCodeResponse = await fetch(`http://localhost:8080/v1/verification/send-email-code?email=${formData.email}`, {
           method: "POST",
         });
@@ -52,14 +66,22 @@ const Register = () => {
         if (sendCodeResponse.ok) {
           navigate("/verify-email", { state: { email: formData.email } });
         } else {
-          alert("Doğrulama kodu gönderilemedi.");
+          setPopupMessage("Doğrulama kodu gönderilemedi.");
+          setOpen(true);
         }
       } else {
-        alert("Kayıt başarısız: " + (data.message || "Bilinmeyen bir hata oluştu."));
+        setPopupMessage("Kayıt başarısız: " + (data.message || "Bilinmeyen bir hata oluştu."));
+        setOpen(true);
       }
     } catch (error) {
       console.error("Kayıt işlemi sırasında hata oluştu:", error);
+      setPopupMessage("Kayıt işlemi sırasında hata oluştu.");
+      setOpen(true);
     }
+  };
+
+  const handleClose = () => {
+    setOpen(false);
   };
 
   return (
@@ -81,10 +103,12 @@ const Register = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Kullanıcı Adı"
+                label="Ad-Soyad"
                 name="userName"
                 value={formData.userName}
                 onChange={handleChange}
+                error={!!error.userName}
+                helperText={error.userName}
                 required
               />
             </Grid>
@@ -96,6 +120,8 @@ const Register = () => {
                 type="password"
                 value={formData.password}
                 onChange={handleChange}
+                error={!!error.password}
+                helperText={error.password}
                 required
               />
             </Grid>
@@ -107,6 +133,8 @@ const Register = () => {
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
+                error={!!error.email}
+                helperText={error.email}
                 required
               />
             </Grid>
@@ -117,6 +145,8 @@ const Register = () => {
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleChange}
+                error={!!error.phoneNumber}
+                helperText={error.phoneNumber}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -126,6 +156,8 @@ const Register = () => {
                 name="studentNumber"
                 value={formData.studentNumber}
                 onChange={handleChange}
+                error={!!error.studentNumber}
+                helperText={error.studentNumber}
                 required
               />
             </Grid>
@@ -137,6 +169,8 @@ const Register = () => {
                 name="faculty"
                 value={formData.faculty}
                 onChange={handleChange}
+                error={!!error.faculty}
+                helperText={error.faculty}
                 required
               >
                 <MenuItem value="muhendislik">Mühendislik Fakültesi</MenuItem>
@@ -152,12 +186,12 @@ const Register = () => {
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
+                error={!!error.department}
+                helperText={error.department}
                 required
               >
                 <MenuItem value="bilgisayar">Bilgisayar Mühendisliği</MenuItem>
-                <MenuItem value="elektrik">
-                  Elektrik-Elektronik Mühendisliği
-                </MenuItem>
+                <MenuItem value="elektrik">Elektrik-Elektronik Mühendisliği</MenuItem>
                 <MenuItem value="makine">Makine Mühendisliği</MenuItem>
               </TextField>
             </Grid>
@@ -169,6 +203,8 @@ const Register = () => {
                 name="classNumber"
                 value={formData.classNumber}
                 onChange={handleChange}
+                error={!!error.classNumber}
+                helperText={error.classNumber}
                 required
               >
                 <MenuItem value="1">1. Sınıf</MenuItem>
@@ -200,6 +236,25 @@ const Register = () => {
           </Grid>
         </form>
       </Card>
+
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Hata"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            {popupMessage}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} color="primary" autoFocus>
+            Kapat
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
