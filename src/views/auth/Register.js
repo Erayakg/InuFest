@@ -7,22 +7,20 @@ import {
   Button,
   Typography,
   MenuItem,
-  FormControl,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: "",
+    userName: "",
     password: "",
     email: "",
-    firstName: "",
-    lastName: "",
+    studentNumber: "",
     faculty: "",
     department: "",
-    studentNumber: "",
-    grade: "",
+    classNumber: "",
+    phoneNumber: "",
   });
 
   const handleChange = (e) => {
@@ -32,10 +30,36 @@ const Register = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // API çağrısı burada yapılacak
-    console.log(formData);
+    try {
+      const response = await fetch("http://localhost:8080/v1/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Email doğrulama kodunu göndermek için istekte bulunun
+        const sendCodeResponse = await fetch(`http://localhost:8080/v1/verification/send-email-code?email=${formData.email}`, {
+          method: "POST",
+        });
+
+        if (sendCodeResponse.ok) {
+          navigate("/verify-email", { state: { email: formData.email } });
+        } else {
+          alert("Doğrulama kodu gönderilemedi.");
+        }
+      } else {
+        alert("Kayıt başarısız: " + (data.message || "Bilinmeyen bir hata oluştu."));
+      }
+    } catch (error) {
+      console.error("Kayıt işlemi sırasında hata oluştu:", error);
+    }
   };
 
   return (
@@ -58,8 +82,8 @@ const Register = () => {
               <TextField
                 fullWidth
                 label="Kullanıcı Adı"
-                name="username"
-                value={formData.username}
+                name="userName"
+                value={formData.userName}
                 onChange={handleChange}
                 required
               />
@@ -86,22 +110,21 @@ const Register = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Ad"
-                name="firstName"
-                value={formData.firstName}
+                label="Telefon Numarası"
+                name="phoneNumber"
+                value={formData.phoneNumber}
                 onChange={handleChange}
-                required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Soyad"
-                name="lastName"
-                value={formData.lastName}
+                label="Öğrenci Numarası"
+                name="studentNumber"
+                value={formData.studentNumber}
                 onChange={handleChange}
                 required
               />
@@ -132,27 +155,19 @@ const Register = () => {
                 required
               >
                 <MenuItem value="bilgisayar">Bilgisayar Mühendisliği</MenuItem>
-                <MenuItem value="elektrik">Elektrik-Elektronik Mühendisliği</MenuItem>
+                <MenuItem value="elektrik">
+                  Elektrik-Elektronik Mühendisliği
+                </MenuItem>
                 <MenuItem value="makine">Makine Mühendisliği</MenuItem>
               </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Öğrenci Numarası"
-                name="studentNumber"
-                value={formData.studentNumber}
-                onChange={handleChange}
-                required
-              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 select
                 fullWidth
                 label="Sınıf"
-                name="grade"
-                value={formData.grade}
+                name="classNumber"
+                value={formData.classNumber}
                 onChange={handleChange}
                 required
               >
@@ -189,4 +204,4 @@ const Register = () => {
   );
 };
 
-export default Register; 
+export default Register;

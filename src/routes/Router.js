@@ -8,6 +8,7 @@ import ProjectEdit from "../views/ProjectEdit/ProjectEdit.js";
 import ProjectDetail from "../views/ProjectDetail/ProjectDetail";
 import Profile from "../views/Profile/Profile";
 import AdminPage from "../views/pages/AdminPage.js";
+import VerifyEmail from "../views/auth/VerifyEmail";
 /****Layouts*****/
 const FullLayout = lazy(() => import("../layouts/FullLayout/FullLayout.js"));
 /****End Layouts*****/
@@ -53,6 +54,7 @@ const ThemeRoutes = [
       {path: "/projects/detail/:id", element: <ProjectDetail />},
       {path: "/profile", element: <Profile />},
       {path: "/admin", element: <AdminPage />},
+      {path: "/verify-email", element: <VerifyEmail />},
     ],
   },
   {
