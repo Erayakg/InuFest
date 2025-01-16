@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -8,7 +9,6 @@ import {
   Typography,
   Autocomplete,
 } from "@mui/material";
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const CreateProject = () => {
@@ -28,6 +28,9 @@ const CreateProject = () => {
   // Options state
   const [categories, setCategories] = useState([]);
   const [students, setStudents] = useState([]);
+
+  // Kullanıcı seçtiği PDF dosyasına dair hataları göstermek için
+  const [fileError, setFileError] = useState(null);
 
   // Kategorileri yükle
   useEffect(() => {
@@ -73,8 +76,6 @@ const CreateProject = () => {
     }));
   };
 
-  const [fileError, setFileError] = useState(null);
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     setFileError(null);
@@ -86,6 +87,7 @@ const CreateProject = () => {
             ...prev,
             projectFile: file
           }));
+          console.log('Selected file:', file);
         } else {
           setFileError('Dosya boyutu 5MB\'dan küçük olmalıdır');
           e.target.value = null;
@@ -96,51 +98,57 @@ const CreateProject = () => {
       }
     }
   };
-  const handleSubmit = async (e) => {
 
+  const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    if (!formData.name || !formData.description || !formData.categoryId || !formData.StudentId?.length) {
-      setError('Lütfen tüm zorunlu alanları doldurun');
-      return;
-    }
-  
+    setLoading(true);
+    setError(null);
+
     try {
       const token = localStorage.getItem('token');
-  
-      // FormData oluşturun ve tüm verileri ekleyin
       const formDataToSend = new FormData();
+
+      // formData state'inden değerleri al
       formDataToSend.append('name', formData.name);
       formDataToSend.append('description', formData.description);
-      formDataToSend.append('categoryId', formData.categoryId.toString());
-      formData.StudentId.forEach(id => formDataToSend.append('StudentId', id.toString()));
-  
-      if (formData.projectFile) {
-        formDataToSend.append('projectFile', formData.projectFile);
-      }
-  
-      const response = await fetch('/v1/project/student/createProject', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`, 
-          'Content-Type': 'multipart/form-data'// Content-Type manuel eklenmemeli
-        },
-        body: formDataToSend
+      formDataToSend.append('categoryId', formData.categoryId);
+      
+      // StudentId array'ini ayrı ayrı ekle
+      formData.StudentId.forEach(id => {
+        formDataToSend.append('StudentId', id);
       });
-  
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Hata: ${errorText}`);
+
+      // PDF dosyasını kontrol et ve ekle
+      if (formData.projectFile) {
+        formDataToSend.append('projectFile', formData.projectFile, formData.projectFile.name);
       }
-  
-      const data = await response.json();
-      console.log('Başarılı:', data);
-      navigate('/projects');
+
+      const response = await axios({
+        method: 'POST',
+        url: '/v1/project/student/createProject',
+        data: formDataToSend,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        responseType: 'json'
+      });
+
+      if (response.data.success) {
+        console.log('Proje başarıyla oluşturuldu:', response.data);
+        navigate('/projects');
+      }
     } catch (error) {
-      console.error('Hata:', error);
-      setError(error.message || 'Bir hata oluştu');
+      console.error('Proje oluşturma hatası:', error);
+      setError(
+        error.response?.data?.message || 
+        'Proje oluşturulurken bir hata oluştu. Lütfen tüm alanları kontrol edin.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
+
   return (
     <Grid container spacing={0}>
       <Grid item xs={12} lg={12}>
@@ -229,9 +237,10 @@ const CreateProject = () => {
                     PDF Dosyası Yükle
                     <input
                       type="file"
-                      hidden
-                      onChange={handleFileChange}
                       accept="application/pdf"
+                      onChange={handleFileChange}
+                      style={{ display: 'none' }}
+                      id="project-file-input"
                     />
                   </Button>
                   {formData.projectFile && (
@@ -275,4 +284,4 @@ const CreateProject = () => {
   );
 };
 
-export default CreateProject; 
+export default CreateProject;
