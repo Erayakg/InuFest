@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Box,
   Card,
@@ -6,7 +7,6 @@ import {
   Grid,
   Typography,
   Avatar,
-  Divider,
   Button,
   TextField,
   IconButton,
@@ -24,16 +24,51 @@ import {
 const Profile = () => {
   const [isEditing, setIsEditing] = React.useState(false);
   const [userData, setUserData] = React.useState({
-    name: "Ahmet Yılmaz",
-    email: "ahmet.yilmaz@example.com",
-    phone: "+90 555 123 4567",
-    department: "Bilgisayar Mühendisliği",
-    studentId: "20201701001",
-    role: "Öğrenci",
-    avatar: "AY",
+    username: "",
+    email: "",
+    phoneNumber: "",
+    department: "",
+    studentNumber: "",
+    role: "",
+    faculty: "",
+    classNumber: "",
   });
 
   const [editData, setEditData] = React.useState(userData);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // LocalStorage'dan kullanıcı ID'sini al
+  const userId = localStorage.getItem('userId');
+
+  // Kullanıcı verilerini çek
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!userId) {
+        setError('Kullanıcı bilgisi bulunamadı');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await axios.get(`/student/getStudentById/${userId}`);
+        
+        if (response.data.success) {
+          const profileData = response.data.data;
+          setUserData(profileData);
+          setEditData(profileData);
+        }
+      } catch (err) {
+        console.error('Profil verisi çekilirken hata:', err);
+        setError('Profil bilgileri yüklenemedi');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [userId]);
 
   const handleEdit = () => {
     setEditData(userData);
@@ -45,11 +80,19 @@ const Profile = () => {
     setEditData(userData);
   };
 
-  const handleSave = () => {
-    setUserData(editData);
-    setIsEditing(false);
-    // Burada API çağrısı yapılacak
-    console.log('Güncellenecek veriler:', editData);
+  const handleSave = async () => {
+    try {
+      const response = await axios.put(`/student/update/${userId}`, editData);
+      
+      if (response.data.success) {
+        setUserData(editData);
+        setIsEditing(false);
+        alert('Profil başarıyla güncellendi');
+      }
+    } catch (error) {
+      console.error('Profil güncellenirken hata:', error);
+      alert('Profil güncellenirken bir hata oluştu');
+    }
   };
 
   const handleChange = (e) => {
@@ -58,6 +101,14 @@ const Profile = () => {
       [e.target.name]: e.target.value
     });
   };
+
+  // Kullanıcı ID'si yoksa hata göster
+  if (!userId) {
+    return <div>Oturum bulunamadı. Lütfen tekrar giriş yapın.</div>;
+  }
+
+  if (loading) return <div>Yükleniyor...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -75,10 +126,10 @@ const Profile = () => {
                   bgcolor: 'primary.main'
                 }}
               >
-                {userData.avatar}
+                {userData.username ? userData.username.charAt(0).toUpperCase() : 'U'}
               </Avatar>
               <Typography variant="h5" gutterBottom>
-                {userData.name}
+                {userData.username}
               </Typography>
               <Typography variant="body2" color="textSecondary" gutterBottom>
                 {userData.role}
@@ -125,13 +176,13 @@ const Profile = () => {
                     {isEditing ? (
                       <TextField
                         fullWidth
-                        name="name"
+                        name="username"
                         label="Ad Soyad"
-                        value={editData.name}
+                        value={editData.username}
                         onChange={handleChange}
                       />
                     ) : (
-                      <Typography>{userData.name}</Typography>
+                      <Typography>{userData.username}</Typography>
                     )}
                   </Box>
                 </Grid>
@@ -142,13 +193,13 @@ const Profile = () => {
                     {isEditing ? (
                       <TextField
                         fullWidth
-                        name="studentId"
+                        name="studentNumber"
                         label="Öğrenci Numarası"
-                        value={editData.studentId}
+                        value={editData.studentNumber}
                         onChange={handleChange}
                       />
                     ) : (
-                      <Typography>{userData.studentId}</Typography>
+                      <Typography>{userData.studentNumber}</Typography>
                     )}
                   </Box>
                 </Grid>
@@ -176,13 +227,13 @@ const Profile = () => {
                     {isEditing ? (
                       <TextField
                         fullWidth
-                        name="phone"
+                        name="phoneNumber"
                         label="Telefon"
-                        value={editData.phone}
+                        value={editData.phoneNumber}
                         onChange={handleChange}
                       />
                     ) : (
-                      <Typography>{userData.phone}</Typography>
+                      <Typography>{userData.phoneNumber}</Typography>
                     )}
                   </Box>
                 </Grid>

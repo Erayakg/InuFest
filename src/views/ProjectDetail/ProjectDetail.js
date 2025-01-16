@@ -1,202 +1,203 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
 import {
+  Box,
   Card,
   CardContent,
-  Typography,
-  Box,
   Grid,
-  Breadcrumbs,
-  Link,
+  Typography,
   Chip,
-  Button,
   Divider,
-  Avatar,
-  Stack,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Button,
+  CircularProgress,
+  Paper
 } from '@mui/material';
 import {
   Description as DescriptionIcon,
   Category as CategoryIcon,
   Group as GroupIcon,
-  Assignment as AssignmentIcon,
-  PictureAsPdf as PdfIcon,
-  Event as EventIcon,
+  CalendarToday as CalendarIcon,
+  AttachFile as AttachFileIcon,
+  School as SchoolIcon,
 } from '@mui/icons-material';
 
 const ProjectDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const [project, setProject] = React.useState(null);
+  const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  React.useEffect(() => {
-    // Fake project data
-    const fakeProject = {
-      id,
-      projectName: "Yapay Zeka ile Görüntü İşleme",
-      category: "Yapay Zeka",
-      applicationType: "Lisans Tezi",
-      description: "Bu proje, derin öğrenme teknikleri kullanılarak görüntü işleme ve nesne tanıma üzerine odaklanmaktadır. Projede YOLO ve ResNet gibi modern CNN mimarileri kullanılarak gerçek zamanlı nesne tespiti yapılması hedeflenmektedir.",
-      members: [
-        { id: 1, label: "Ahmet Yılmaz", role: "Öğrenci" },
-        { id: 2, label: "Dr. Mehmet Demir", role: "Danışman" },
-        { id: 3, label: "Ayşe Kaya", role: "Öğrenci" }
-      ],
-      projectFile: "proje_detaylari.pdf",
-      applicationDate: "2024-03-15"
+  useEffect(() => {
+    const fetchProjectDetail = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`/v1/project/student/getProject/${id}`);
+        
+        if (response.data.success) {
+          setProject(response.data.data);
+        } else {
+          setError('Proje bilgileri alınamadı');
+        }
+      } catch (err) {
+        setError('Proje yüklenirken bir hata oluştu');
+        console.error('Proje detay hatası:', err);
+      } finally {
+        setLoading(false);
+      }
     };
-    
-    setProject(fakeProject);
+
+    fetchProjectDetail();
   }, [id]);
 
-  if (!project) return <div>Yükleniyor...</div>;
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Breadcrumbs sx={{ mb: 3 }}>
-        <Link
-          color="inherit"
-          href="/projects"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate('/projects');
-          }}
-        >
-          Projeler
-        </Link>
-        <Typography color="text.primary">Proje Detayı</Typography>
-      </Breadcrumbs>
+    <Box p={3}>
+      <Paper elevation={0} sx={{ p: 3, mb: 3, bgcolor: 'primary.main', color: 'white' }}>
+        <Typography variant="h4" gutterBottom>
+          {project?.name}
+        </Typography>
+        <Chip 
+          label={project?.category?.name} 
+          sx={{ 
+            bgcolor: 'white', 
+            color: 'primary.main',
+            fontWeight: 'bold'
+          }} 
+        />
+      </Paper>
 
       <Grid container spacing={3}>
-        {/* Ana Bilgiler Kartı */}
-        <Grid item xs={12}>
+        {/* Proje Detayları */}
+        <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h4" component="h1">
-                  {project.projectName}
-                </Typography>
-                <Button
-                  variant="contained"
-                  onClick={() => navigate(`/projects/edit/${id}`)}
-                >
-                  Düzenle
-                </Button>
-              </Box>
+              <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
+                Proje Detayları
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <List>
+                <ListItem>
+                  <ListItemIcon>
+                    <DescriptionIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={
+                      <Typography variant="subtitle1" color="primary.main" gutterBottom>
+                        Proje Açıklaması
+                      </Typography>
+                    }
+                    secondary={
+                      <Typography variant="body1">
+                        {project?.description}
+                      </Typography>
+                    }
+                  />
+                </ListItem>
 
-              <Grid container spacing={3}>
-                {/* Kategori */}
-                <Grid item xs={12} md={4}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ListItem>
+                  <ListItemIcon>
                     <CategoryIcon color="primary" />
-                    <Box>
-                      <Typography variant="subtitle2" color="textSecondary">
-                        Kategori
-                      </Typography>
-                      <Typography variant="body1">
-                        {project.category}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Kategori"
+                    secondary={project?.category?.name}
+                  />
+                </ListItem>
 
-                {/* Başvuru Tipi */}
-                <Grid item xs={12} md={4}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <AssignmentIcon color="primary" />
-                    <Box>
-                      <Typography variant="subtitle2" color="textSecondary">
-                        Başvuru Tipi
-                      </Typography>
-                      <Typography variant="body1">
-                        {project.applicationType}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
+                <ListItem>
+                  <ListItemIcon>
+                    <CalendarIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Oluşturulma Tarihi"
+                    secondary={new Date(project?.createDate).toLocaleDateString('tr-TR')}
+                  />
+                </ListItem>
 
-                {/* Başvuru Tarihi */}
-                <Grid item xs={12} md={4}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <EventIcon color="primary" />
-                    <Box>
-                      <Typography variant="subtitle2" color="textSecondary">
-                        Başvuru Tarihi
-                      </Typography>
-                      <Typography variant="body1">
-                        {new Date(project.applicationDate).toLocaleDateString('tr-TR')}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-              </Grid>
+                {project?.projectFile && (
+                  <ListItem>
+                    <ListItemIcon>
+                      <AttachFileIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary="Proje Dosyası"
+                      secondary={
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<AttachFileIcon />}
+                          onClick={() => window.open(project.projectFile, '_blank')}
+                          sx={{ mt: 1 }}
+                        >
+                          Dosyayı Görüntüle
+                        </Button>
+                      }
+                    />
+                  </ListItem>
+                )}
+              </List>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Proje Açıklaması Kartı */}
-        <Grid item xs={12} md={8}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <DescriptionIcon color="primary" />
-                Proje Açıklaması
-              </Typography>
-              <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                {project.description}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Proje Üyeleri Kartı */}
+        {/* Proje Üyeleri */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
+          <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <GroupIcon color="primary" />
+              <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
                 Proje Üyeleri
               </Typography>
-              <Stack spacing={2}>
-                {project.members.map((member) => (
-                  <Box key={member.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar>{member.label[0]}</Avatar>
-                    <Box>
-                      <Typography variant="body1">
-                        {member.label}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        {member.role}
+              <Divider sx={{ mb: 3 }} />
+              
+              <List>
+                {project?.students?.map((student) => (
+                  <Paper
+                    key={student.id}
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      mb: 2,
+                      bgcolor: 'background.default',
+                      border: '1px solid',
+                      borderColor: 'divider'
+                    }}
+                  >
+                    <Typography variant="subtitle1" gutterBottom color="primary.main">
+                      {student.username}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <SchoolIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {student.studentNumber}
                       </Typography>
                     </Box>
-                  </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {student.department}
+                    </Typography>
+                  </Paper>
                 ))}
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* PDF Dosyası Kartı */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <PdfIcon color="primary" />
-                Proje Dosyası
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography variant="body1">
-                  {project.projectFile}
-                </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<PdfIcon />}
-                  onClick={() => {
-                    console.log('PDF indiriliyor:', project.projectFile);
-                  }}
-                >
-                  İndir
-                </Button>
-              </Box>
+              </List>
             </CardContent>
           </Card>
         </Grid>
@@ -205,4 +206,4 @@ const ProjectDetail = () => {
   );
 };
 
-export default ProjectDetail; 
+export default ProjectDetail;

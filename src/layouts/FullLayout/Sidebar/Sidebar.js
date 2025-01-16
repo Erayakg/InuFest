@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router";
 import { Link, NavLink } from "react-router-dom";
 import {
   Box,
@@ -11,16 +11,13 @@ import {
   ListItemText,
 } from "@mui/material";
 import { SidebarWidth } from "../../../assets/global/Theme-variable";
-import LogoIcon from "../Logo/LogoIcon";
 import Menuitems from "./data";
-import axios from "axios"; // axios'u import etmeyi unutmayın
 
 const Sidebar = (props) => {
   const [open, setOpen] = React.useState(true);
   const { pathname } = useLocation();
   const pathDirect = pathname;
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up("lg"));
-  const navigate = useNavigate();
 
   const handleClick = (index) => {
     if (open === index) {
@@ -28,29 +25,6 @@ const Sidebar = (props) => {
     } else {
       setOpen(index);
     }
-  };
-
-  const handleLogout = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(`/v1/auth/logout/${token}`);
-      
-      // Kullanıcı bilgilerini temizle
-      localStorage.removeItem("token");
-      localStorage.removeItem("username");
-      localStorage.removeItem("role");
-      localStorage.removeItem("userId");
-
-      // Giriş sayfasına yönlendirme
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
-  };
-
-  const getFilteredMenuItems = () => {
-    const role = localStorage.getItem("role") || "guest";
-    return Menuitems.filter(item => item.roles.includes(role));
   };
 
   const SidebarContent = (
@@ -65,7 +39,7 @@ const Sidebar = (props) => {
     }}>
       <Link to="/">
         <Box sx={{ display: "flex", alignItems: "Center" }}>
-          <LogoIcon />
+        
         </Box>
       </Link>
 
@@ -93,39 +67,40 @@ const Sidebar = (props) => {
         }}
       >
         <List>
-          {getFilteredMenuItems().map((item, index) => (
-            <List component="li" disablePadding key={item.title}>
-              <ListItem
-                onClick={() => item.href === "/logout" ? handleLogout() : handleClick(index)}
-                button
-                component={item.href !== "/logout" ? NavLink : "div"}
-                to={item.href !== "/logout" ? item.href : "#"}
-                selected={pathDirect === item.href}
-                sx={{
-                  mb: 1,
-                  ...(pathDirect === item.href && {
-                    color: "white",
-                    backgroundColor: (theme) =>
-                      `${theme.palette.primary.main}!important`,
-                  }),
-                }}
-              >
-                <ListItemIcon
+          {Menuitems.map((item, index) => {
+            return (
+              <List component="li" disablePadding key={item.title}>
+                <ListItem
+                  onClick={() => handleClick(index)}
+                  button
+                  component={NavLink}
+                  to={item.href}
+                  selected={pathDirect === item.href}
                   sx={{
-                    ...(pathDirect === item.href && { color: "white" }),
+                    mb: 1,
+                    ...(pathDirect === item.href && {
+                      color: "white",
+                      backgroundColor: (theme) =>
+                        `${theme.palette.primary.main}!important`,
+                    }),
                   }}
                 >
-                  <item.icon width="20" height="20" />
-                </ListItemIcon>
-                <ListItemText>{item.title}</ListItemText>
-              </ListItem>
-            </List>
-          ))}
+                  <ListItemIcon
+                    sx={{
+                      ...(pathDirect === item.href && { color: "white" }),
+                    }}
+                  >
+                    <item.icon width="20" height="20" />
+                  </ListItemIcon>
+                  <ListItemText>{item.title}</ListItemText>
+                </ListItem>
+              </List>
+            );
+          })}
         </List>
       </Box>
     </Box>
   );
-
   if (lgUp) {
     return (
       <Drawer
@@ -142,7 +117,6 @@ const Sidebar = (props) => {
       </Drawer>
     );
   }
-
   return (
     <Drawer
       anchor="left"

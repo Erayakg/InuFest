@@ -55,6 +55,7 @@ const ThemeRoutes = [
       {path: "/profile", element: <Profile />},
       {path: "/admin", element: <AdminPage />},
       {path: "/verify-email", element: <VerifyEmail />},
+      {path: "/projectDetails/:id", element: <ProjectDetail />},
     ],
   },
   {
