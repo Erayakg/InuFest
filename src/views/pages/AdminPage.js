@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Box,
   Card,
@@ -42,30 +43,54 @@ const AdminPage = () => {
     expertise: '',
     phone: ''
   });
+  const [projectsWithMentor, setProjectsWithMentor] = useState([]);
+  const [projectsWithoutMentor, setProjectsWithoutMentor] = useState([]);
+  const [mentors, setMentors] = useState([]);
 
-  // Örnek veriler
-  const [projects, setProjects] = useState([
-    { 
-      id: 1, 
-      name: 'Web Geliştirme Projesi', 
-      creator: 'Ali Yılmaz',
-      mentor: null, 
-      status: 'Mentör Bekleniyor' 
-    },
-    { 
-      id: 2, 
-      name: 'Mobil Uygulama Projesi', 
-      creator: 'Ayşe Kara',
-      mentor: 'Mehmet Kaya', 
-      status: 'Devam Ediyor' 
-    },
-  ]);
+  useEffect(() => {
+    fetchMentors();
+    fetchAllProjects();
+  }, []);
 
-  const [mentors, setMentors] = useState([
-    { id: 1, name: 'Ayşe Demir', expertise: 'Web Geliştirme', activeProjects: 1 },
-    { id: 2, name: 'Mehmet Kaya', expertise: 'Mobil Geliştirme', activeProjects: 1 },
-    { id: 3, name: 'Fatma Şahin', expertise: 'Backend Geliştirme', activeProjects: 0 },
-  ]);
+  const fetchAllProjects = async () => {
+    try {
+      // Fetch both types of projects in parallel
+      const [withMentorRes, withoutMentorRes] = await Promise.all([
+        axios.get('/v1/project/admin/withReferee'),
+        axios.get('/v1/project/admin/withoutReferee')
+      ]);
+
+      const withMentor = withMentorRes.data.data.map(project => ({
+        id: project.id,
+        name: project.name,
+        creator: project.creator,
+        mentor: project.referee?.name,
+        status: 'Devam Ediyor'
+      }));
+
+      const withoutMentor = withoutMentorRes.data.data.map(project => ({
+        id: project.id,
+        name: project.name,
+        creator: project.creator,
+        mentor: null,
+        status: 'Mentör Bekleniyor'
+      }));
+
+      setProjectsWithMentor(withMentor);
+      setProjectsWithoutMentor(withoutMentor);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  };
+
+  const fetchMentors = async () => {
+    try {
+      const response = await axios.get('/referee');
+      setMentors(response.data.data);
+    } catch (error) {
+      console.error('Error fetching mentors:', error);
+    }
+  };
 
   const handleAssignMentor = (project) => {
     setSelectedProject(project);
@@ -79,30 +104,21 @@ const AdminPage = () => {
     setSelectedMentor('');
   };
 
-  const handleSaveAssignment = () => {
+  const handleSaveAssignment = async () => {
     if (selectedMentor && selectedProject) {
-      setProjects(projects.map(project => {
-        if (project.id === selectedProject.id) {
-          return {
-            ...project,
-            mentor: mentors.find(m => m.id === selectedMentor).name,
-            status: 'Devam Ediyor'
-          };
-        }
-        return project;
-      }));
+      try {
+        await axios.put(`/v1/project/admin/assignMentorToProject/admin/${selectedProject.id}/${selectedMentor}`);
+        
+        // Refresh data after successful assignment
+        await Promise.all([
+          fetchAllProjects(),
+          fetchMentors()
+        ]);
 
-      setMentors(mentors.map(mentor => {
-        if (mentor.id === selectedMentor) {
-          return {
-            ...mentor,
-            activeProjects: mentor.activeProjects + 1
-          };
-        }
-        return mentor;
-      }));
-
-      handleCloseDialog();
+        handleCloseDialog();
+      } catch (error) {
+        console.error('Error assigning mentor:', error);
+      }
     }
   };
 
@@ -113,16 +129,16 @@ const AdminPage = () => {
     });
   };
 
-  const handleAddMentor = (e) => {
+  const handleAddMentor = async (e) => {
     e.preventDefault();
-    const newMentor = {
-      id: mentors.length + 1,
-      ...newMentorData,
-      activeProjects: 0
-    };
-    setMentors([...mentors, newMentor]);
-    setNewMentorData({ name: '', email: '', expertise: '', phone: '' });
-    setShowMentorForm(false); // Formu kapat
+    try {
+      const response = await axios.post('/referee/addReferee', newMentorData);
+      setMentors([...mentors, response.data.data]);
+      setNewMentorData({ name: '', email: '', expertise: '', phone: '' });
+      setShowMentorForm(false); // Close the form
+    } catch (error) {
+      console.error('Error adding mentor:', error);
+    }
   };
 
   const renderDashboard = () => (
@@ -134,7 +150,7 @@ const AdminPage = () => {
               <ProjectIcon />
             </Avatar>
             <Typography variant="h5" gutterBottom>
-              {projects.filter(p => !p.mentor).length}
+              {projectsWithoutMentor.length}
             </Typography>
             <Typography variant="body2" color="textSecondary">
               Mentör Bekleyen Projeler
@@ -164,7 +180,7 @@ const AdminPage = () => {
               <ProjectIcon />
             </Avatar>
             <Typography variant="h5" gutterBottom>
-              {projects.filter(p => p.mentor).length}
+              {projectsWithMentor.length}
             </Typography>
             <Typography variant="body2" color="textSecondary">
               Devam Eden Projeler
@@ -283,7 +299,7 @@ const AdminPage = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {projects.map((project) => (
+              {[...projectsWithoutMentor, ...projectsWithMentor].map((project) => (
                 <TableRow key={project.id}>
                   <TableCell>{project.name}</TableCell>
                   <TableCell>{project.creator}</TableCell>
