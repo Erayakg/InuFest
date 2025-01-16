@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -17,109 +17,151 @@ import {
   useTheme,
   useMediaQuery,
   Grid,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
+  CircularProgress,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
-// Örnek veri - API'den gelecek
-const projects = [
-  {
-    id: 1,
-    projectName: "Akıllı Ev Sistemleri",
-    projectType: "Teknofest türkiye",
-    projectDescription: "IoT tabanlı akıllı ev otomasyonu",
-    supervisor: "Dr. Ahmet Yılmaz",
-    applicationDate: "2024-01-15",
-    status: "Devam Ediyor",
-    students: ["Ali Yılmaz", "Ayşe Demir"],
-    category: "Akıllı Şehirler",
-  },
-  {
-    id: 2,
-    projectName: "Yapay Zeka ile Görüntü İşleme",
-    projectType: "Teknofest KKTC",
-    projectDescription: "Derin öğrenme ile nesne tanıma sistemi",
-    supervisor: "Dr. Mehmet Kaya",
-    applicationDate: "2024-02-01",
-    status: "Tamamlandı",
-    students: ["Mehmet Şahin"],
-    category: "Yapay Zeka",
-  },
-];
 
 const ProjectList = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleEdit = (id) => {
-    navigate(`/projects/edit/${id}`);
-  };
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
-  const handleDelete = (id) => {
-    console.log("Delete project:", id);
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/project`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        setProjects(response.data.data);
+      } else {
+        setError(response.data.data || response.data.message || 'Bir hata oluştu');
+      }
+    } catch (err) {
+      // Token geçersiz ise login sayfasına yönlendir
+      if (err.response?.status === 401) {
+        localStorage.clear(); // Tüm storage'ı temizle
+        navigate('/login');
+        return;
+      }
+
+      const errorMessage = err.response?.data?.data || 
+                          err.response?.data?.message || 
+                          'Projeler yüklenirken bir hata oluştu';
+      setError(errorMessage);
+      console.error('Error fetching projects:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleView = (id) => {
-    navigate(`/projects/detail/${id}`);
+    console.log('View project:', id);
+    // Görüntüleme işlemleri için yönlendirme yapılabilir
+    // navigate(`/project/${id}`);
   };
+
+  const handleEdit = (id) => {
+    console.log('Edit project:', id);
+    // Düzenleme işlemleri için yönlendirme yapılabilir
+    // navigate(`/project/edit/${id}`);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      // API çağrısı eklenecek
+      console.log('Delete project:', id);
+      // await axios.delete(`http://localhost:8080/project/${id}`);
+      // Silme başarılı olursa listeyi güncelle
+      // setProjects(projects.filter(project => project.id !== id));
+    } catch (err) {
+      console.error('Error deleting project:', err);
+      setError('Proje silinirken bir hata oluştu');
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="80vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="80vh"
+      >
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
 
   // Mobil görünüm için kart komponenti
   const MobileProjectCard = ({ project }) => (
     <Card sx={{ mb: 2, p: 2 }}>
       <Box sx={{ mb: 2 }}>
         <Typography variant="h6" gutterBottom>
-          {project.projectName}
+          {project.name}
         </Typography>
-        <Chip
-          label={project.status}
-          color={project.status === "Tamamlandı" ? "success" : "warning"}
-          size="small"
-          sx={{ mb: 1 }}
-        />
+        <Typography variant="body2" color="textSecondary" gutterBottom>
+          {project.description}
+        </Typography>
       </Box>
       
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={6}>
           <Typography variant="caption" color="textSecondary">
-            Proje Tipi
-          </Typography>
-          <Typography variant="body2">{project.projectType}</Typography>
-        </Grid>
-        <Grid item xs={6}>
-          <Typography variant="caption" color="textSecondary">
             Kategori
           </Typography>
           <Typography variant="body2">
-            <Chip label={project.category} size="small" color="primary" />
+            <Chip label={project.category.name} size="small" color="primary" />
           </Typography>
         </Grid>
-        <Grid item xs={6}>
-          <Typography variant="caption" color="textSecondary">
-            Danışman
-          </Typography>
-          <Typography variant="body2">{project.supervisor}</Typography>
-        </Grid>
-        <Grid item xs={6}>
+        <Grid item xs={12}>
           <Typography variant="caption" color="textSecondary">
             Öğrenciler
           </Typography>
-          <Typography variant="body2">{project.students.join(", ")}</Typography>
+          <Typography variant="body2">
+            {project.students.map(student => student.username).join(", ")}
+          </Typography>
         </Grid>
         <Grid item xs={6}>
           <Typography variant="caption" color="textSecondary">
-            Başvuru Tarihi
+            Oluşturulma Tarihi
           </Typography>
           <Typography variant="body2">
-            {new Date(project.applicationDate).toLocaleDateString()}
+            {new Date(project.createDate).toLocaleDateString()}
           </Typography>
         </Grid>
       </Grid>
@@ -147,25 +189,21 @@ const ProjectList = () => {
           </Typography>
           
           {isMobile ? (
-            // Mobil görünüm
             <Box>
               {projects.map((project) => (
                 <MobileProjectCard key={project.id} project={project} />
               ))}
             </Box>
           ) : (
-            // Masaüstü görünüm (tablo güncellendi)
             <TableContainer component={Paper}>
               <Table sx={{ minWidth: 650 }} aria-label="project table">
                 <TableHead>
                   <TableRow>
                     <TableCell><strong>Proje Adı</strong></TableCell>
-                    <TableCell><strong>Proje Tipi</strong></TableCell>
-                    <TableCell><strong>Danışman</strong></TableCell>
-                    <TableCell><strong>Öğrenciler</strong></TableCell>
-                    <TableCell><strong>Başvuru Tarihi</strong></TableCell>
-                    <TableCell><strong>Durum</strong></TableCell>
+                    <TableCell><strong>Açıklama</strong></TableCell>
                     <TableCell><strong>Kategori</strong></TableCell>
+                    <TableCell><strong>Öğrenciler</strong></TableCell>
+                    <TableCell><strong>Oluşturulma Tarihi</strong></TableCell>
                     <TableCell><strong>İşlemler</strong></TableCell>
                   </TableRow>
                 </TableHead>
@@ -175,24 +213,20 @@ const ProjectList = () => {
                       key={project.id}
                       sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                     >
-                      <TableCell>{project.projectName}</TableCell>
-                      <TableCell>{project.projectType}</TableCell>
-                      <TableCell>{project.supervisor}</TableCell>
-                      <TableCell>{project.students.join(", ")}</TableCell>
-                      <TableCell>{new Date(project.applicationDate).toLocaleDateString()}</TableCell>
+                      <TableCell>{project.name}</TableCell>
+                      <TableCell>{project.description}</TableCell>
                       <TableCell>
                         <Chip
-                          label={project.status}
-                          color={project.status === "Tamamlandı" ? "success" : "warning"}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={project.category}
+                          label={project.category.name}
                           size="small"
                           color="primary"
                         />
+                      </TableCell>
+                      <TableCell>
+                        {project.students.map(student => student.username).join(", ")}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(project.createDate).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Tooltip title="Görüntüle">
