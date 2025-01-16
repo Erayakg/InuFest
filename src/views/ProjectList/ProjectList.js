@@ -41,13 +41,15 @@ const ProjectList = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      
-      if (!token) {
+      const userId = localStorage.getItem('userId');
+      console.log(userId);
+      console.log(token);
+      if (!token || !userId) {
         navigate('/login');
         return;
       }
 
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/project`, {
+      const response = await axios.get(`v1/project/student/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -59,9 +61,7 @@ const ProjectList = () => {
         setError(response.data.data || response.data.message || 'Bir hata oluştu');
       }
     } catch (err) {
-      // Token geçersiz ise login sayfasına yönlendir
       if (err.response?.status === 401) {
-        localStorage.clear(); // Tüm storage'ı temizle
         navigate('/login');
         return;
       }
