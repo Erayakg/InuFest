@@ -79,24 +79,6 @@ const CreateProject = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     setFileError(null);
-
-    if (file) {
-      if (file.type === 'application/pdf') {
-        if (file.size <= 5 * 1024 * 1024) {
-          setFormData(prev => ({
-            ...prev,
-            projectFile: file
-          }));
-          console.log('Selected file:', file);
-        } else {
-          setFileError('Dosya boyutu 5MB\'dan küçük olmalıdır');
-          e.target.value = null;
-        }
-      } else {
-        setFileError('Sadece PDF dosyası yükleyebilirsiniz');
-        e.target.value = null;
-      }
-    }
   };
 
   const handleSubmit = async (e) => {
