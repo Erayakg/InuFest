@@ -1,10 +1,17 @@
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 
 const Menuitems = [
   {
     title: "Anasyfa",
     icon: DashboardOutlinedIcon,
     href: "/admin",
+    roles: ["ROLE_ADMIN"]
+  },
+  {
+    title: "Tüm Projeler",
+    icon: ListAltIcon,
+    href: "/admin/projects",
     roles: ["ROLE_ADMIN"]
   },
   {
@@ -46,7 +53,7 @@ const Menuitems = [
     href: "/logout",
     roles: ["ROLE_ADMIN", "ROLE_STUDENT", "ROLE_REFEREE"]
   },
-  
+ 
 ];
 
 export default Menuitems;

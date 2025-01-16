@@ -38,6 +38,7 @@ const ThemeRoutes = [
     path: "/",
     element: <FullLayout />,
     children: [
+      { path: "/", element: <Navigate to="dashboards/dashboard1" /> },
       { path: "dashboards/dashboard1", exact: true, element: <Dashboard1 /> },
       { path: "tables/basic-table", element: <BasicTable /> },
       { path: "/create-project", element: <CreateProject /> },
@@ -55,6 +56,7 @@ const ThemeRoutes = [
       {path: "/admin", element: <AdminPage />},
       {path: "/verify-email", element: <VerifyEmail />},
       {path: "/projectDetails/:id", element: <ProjectDetail />},
+      {path: "/admin/projects", element: <ProjectList />},
     ],
   },
   {
