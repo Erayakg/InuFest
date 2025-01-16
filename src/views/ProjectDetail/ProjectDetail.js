@@ -15,7 +15,9 @@ import {
   ListItemIcon,
   Button,
   CircularProgress,
-  Paper
+  Paper,
+  Avatar,
+  Stack
 } from '@mui/material';
 import {
   Description as DescriptionIcon,
@@ -24,6 +26,9 @@ import {
   CalendarToday as CalendarIcon,
   AttachFile as AttachFileIcon,
   School as SchoolIcon,
+  PictureAsPdf as PdfIcon,
+  Event as EventIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material';
 
 const ProjectDetail = () => {
@@ -71,22 +76,75 @@ const ProjectDetail = () => {
   }
 
   return (
-    <Box p={3}>
+    <Box sx={{ p: 3 }}>
       <Paper elevation={0} sx={{ p: 3, mb: 3, bgcolor: 'primary.main', color: 'white' }}>
         <Typography variant="h4" gutterBottom>
           {project?.name}
         </Typography>
-        <Chip 
-          label={project?.category?.name} 
-          sx={{ 
-            bgcolor: 'white', 
-            color: 'primary.main',
-            fontWeight: 'bold'
-          }} 
-        />
+       
       </Paper>
 
       <Grid container spacing={3}>
+        {/* Ana Bilgiler Kartı */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h4" component="h1">
+                  {project?.name}
+                </Typography>
+              </Box>
+
+              <Grid container spacing={3}>
+                {/* Kategori */}
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CategoryIcon color="primary" />
+                    <Box>
+                      <Typography variant="subtitle2" color="textSecondary">
+                        Kategori
+                      </Typography>
+                      <Typography variant="body1">
+                        {project?.category?.name}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+
+                {/* Mentör */}
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PersonIcon color="primary" />
+                    <Box>
+                      <Typography variant="subtitle2" color="textSecondary">
+                        Proje Mentörü
+                      </Typography>
+                      <Typography variant="body1">
+                        {project?.referee || 'Atanmamış'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+
+                {/* Oluşturulma Tarihi */}
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <EventIcon color="primary" />
+                    <Box>
+                      <Typography variant="subtitle2" color="textSecondary">
+                        Oluşturulma Tarihi
+                      </Typography>
+                      <Typography variant="body1">
+                        {new Date(project?.createDate).toLocaleDateString('tr-TR')}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* Proje Detayları */}
         <Grid item xs={12} md={8}>
           <Card>
@@ -161,46 +219,80 @@ const ProjectDetail = () => {
           </Card>
         </Grid>
 
-        {/* Proje Üyeleri */}
+        {/* Proje Üyeleri ve Mentör Kartı */}
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
-                Proje Üyeleri
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <GroupIcon color="primary" />
+                Proje Ekibi
               </Typography>
-              <Divider sx={{ mb: 3 }} />
               
-              <List>
-                {project?.students?.map((student) => (
-                  <Paper
-                    key={student.id}
-                    elevation={0}
-                    sx={{
-                      p: 2,
-                      mb: 2,
-                      bgcolor: 'background.default',
-                      border: '1px solid',
-                      borderColor: 'divider'
-                    }}
-                  >
-                    <Typography variant="subtitle1" gutterBottom color="primary.main">
-                      {student.username}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <SchoolIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {student.studentNumber}
+              {/* Mentör Bilgisi */}
+              <Box sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                <Typography variant="subtitle2" color="primary" gutterBottom>
+                  <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Mentör
+                </Typography>
+                {project?.referee ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+                    <Avatar>
+                      {project.referee?.charAt(0)}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="body1">
+                        {project.referee}
                       </Typography>
+                      {project.referee.department && (
+                        <Typography variant="caption" color="textSecondary">
+                          {project.referee.department}
+                        </Typography>
+                      )}
                     </Box>
-                    <Typography variant="body2" color="text.secondary">
-                      {student.department}
-                    </Typography>
-                  </Paper>
-                ))}
-              </List>
+                  </Box>
+                ) : (
+                  <Typography variant="body1" color="textSecondary">
+                    Henüz mentör atanmamış
+                  </Typography>
+                )}
+              </Box>
+
+              {/* Öğrenci Listesi */}
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Öğrenciler
+              </Typography>
+              <Stack spacing={2}>
+                {project?.students && project.students.length > 0 ? (
+                  project.students.map((student) => (
+                    <Box key={student.id || Math.random()} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Avatar sx={{ bgcolor: 'primary.main' }}>
+                        {student.name && student.name.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="body1">
+                          {student.name}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {student.username}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          {student.studentNumber}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography color="textSecondary">
+                    Projede öğrenci bulunmamaktadır
+                  </Typography>
+                )}
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
+
+        {/* ... PDF Dosyası Kartı aynı ... */}
       </Grid>
     </Box>
   );
