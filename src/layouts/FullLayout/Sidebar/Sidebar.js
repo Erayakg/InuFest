@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { Link, NavLink } from "react-router-dom";
 import {
   Box,
@@ -12,30 +12,42 @@ import {
 } from "@mui/material";
 import { SidebarWidth } from "../../../assets/global/Theme-variable";
 import Menuitems from "./data";
+import axios from "axios";
 
 const Sidebar = (props) => {
   const [open, setOpen] = React.useState(true);
   const { pathname } = useLocation();
   const pathDirect = pathname;
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up("lg"));
-
-  const filteredMenuItems = React.useMemo(() => {
-    const userRole = localStorage.getItem("role");
-    const isGuest = !userRole;
-
-    return Menuitems.filter(item => {
-      if (isGuest) {
-        return item.roles.includes("guest");
-      }
-      return item.roles.includes(userRole);
-    });
-  }, []);
+  const navigate = useNavigate();
 
   const handleClick = (index) => {
     if (open === index) {
       setOpen((prevopen) => !prevopen);
     } else {
       setOpen(index);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Önce backend'e logout isteği at
+      const response = await axios.post(`http://localhost:8080/v1/auth/logout/${token}`);
+      
+      // Backend isteği başarılı olduysa
+      if (response.status === 200) {
+        // localStorage'ı temizle
+        localStorage.clear();
+        // Login sayfasına yönlendir
+        navigate('/login');
+      }
+      
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Hata durumunda kullanıcıya bilgi verilebilir
+      alert('Çıkış yapılırken bir hata oluştu!');
     }
   };
 
@@ -79,34 +91,53 @@ const Sidebar = (props) => {
         }}
       >
         <List>
-          {filteredMenuItems.map((item, index) => {
-            return (
-              <List component="li" disablePadding key={item.title}>
+          {Menuitems.map((item, index) => {
+            if (item.href === '/logout') {
+              return (
                 <ListItem
-                  onClick={() => handleClick(index)}
+                  key={item.title}
                   button
-                  component={NavLink}
-                  to={item.href}
-                  selected={pathDirect === item.href}
+                  onClick={handleLogout}
                   sx={{
                     mb: 1,
-                    ...(pathDirect === item.href && {
-                      color: "white",
-                      backgroundColor: (theme) =>
-                        `${theme.palette.primary.main}!important`,
-                    }),
+                    "&:hover": {
+                      backgroundColor: "rgba(0,0,0,0.04)",
+                    },
                   }}
                 >
-                  <ListItemIcon
-                    sx={{
-                      ...(pathDirect === item.href && { color: "white" }),
-                    }}
-                  >
-                    <item.icon width="20" height="20" />
+                  <ListItemIcon>
+                    <item.icon />
                   </ListItemIcon>
-                  <ListItemText>{item.title}</ListItemText>
+                  <ListItemText primary={item.title} />
                 </ListItem>
-              </List>
+              );
+            }
+
+            return (
+              <ListItem
+                key={item.title}
+                button
+                component={NavLink}
+                to={item.href}
+                selected={pathDirect === item.href}
+                sx={{
+                  mb: 1,
+                  ...(pathDirect === item.href && {
+                    color: "white",
+                    backgroundColor: (theme) =>
+                      `${theme.palette.primary.main}!important`,
+                  }),
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    ...(pathDirect === item.href && { color: "white" }),
+                  }}
+                >
+                  <item.icon />
+                </ListItemIcon>
+                <ListItemText primary={item.title} />
+              </ListItem>
             );
           })}
         </List>
