@@ -435,7 +435,7 @@ const AdminPage = () => {
                   value={mentor.id}
                   disabled={mentor.activeProjects >= 3}
                 >
-                  {mentor.name} ({mentor.expertise}) - Aktif Proje: {mentor.activeProjects}
+                  {mentor.name} {mentor.expertise}
                 </MenuItem>
               ))}
             </Select>

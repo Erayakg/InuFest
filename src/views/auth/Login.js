@@ -34,7 +34,7 @@ const Login = () => {
         localStorage.setItem("role", response.data.role);
         localStorage.setItem("userId", response.data.userId);
 
-        navigate("/projects");
+        navigate("/profile");
       }
     } catch (err) {
       if (err.response?.status === 403) {
