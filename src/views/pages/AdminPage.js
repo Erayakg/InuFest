@@ -89,6 +89,7 @@ const AdminPage = () => {
     try {
       const response = await axios.get('/referee');
       setMentors(response.data.data);
+      console.log(response.data.data);
     } catch (error) {
       console.error('Error fetching mentors:', error);
     }
@@ -361,8 +362,8 @@ const AdminPage = () => {
               {mentors.map((mentor) => (
                 <TableRow key={mentor.id}>
                   <TableCell>{mentor.name}</TableCell>
-                  <TableCell>{mentor.expertise}</TableCell>
-                  <TableCell>{mentor.activeProjects}</TableCell>
+                  <TableCell>{mentor.categoryName}</TableCell>
+                  <TableCell>{mentor.projectCount}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
