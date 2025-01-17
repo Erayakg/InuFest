@@ -84,12 +84,30 @@ const ProjectList = () => {
     }
   };
 
-  // Üyeleri formatlama fonksiyonu
+  // Add helper function for truncating text
+  const truncateText = (text, wordCount = 4) => {
+    if (!text) return '';
+    const words = text.split(' ');
+    if (words.length <= wordCount) return text;
+    return words.slice(0, wordCount).join(' ') + '...';
+  };
+
+  // Update formatMembers function
   const formatMembers = (members) => {
     if (!members || members.length === 0) return 'Üye Yok';
-    return members.map(member => 
-      `${member.firstName} ${member.lastName} (${member.studentNumber})`
-    ).join(", ");
+    return (
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+        {members.map(member => (
+          <Chip
+            key={member.studentNumber}
+            label={`${member.firstName} ${member.lastName}`}
+            size="small"
+            variant="outlined"
+            title={`${member.firstName} ${member.lastName} (${member.studentNumber})`}
+          />
+        ))}
+      </Box>
+    );
   };
 
   if (loading) {
@@ -134,15 +152,20 @@ const ProjectList = () => {
                     <Typography variant="h6" gutterBottom>
                       {project.name}
                     </Typography>
-                    <Typography variant="body2" color="textSecondary" gutterBottom>
-                      {project.description}
-                    </Typography>
+                    <Tooltip title={project.description || ''}>
+                      <Typography variant="body2" color="textSecondary" gutterBottom>
+                        {truncateText(project.description)}
+                      </Typography>
+                    </Tooltip>
                     <Typography variant="body2" color="textSecondary">
                       Kategori: {project.category?.name || 'Kategori Yok'}
                     </Typography>
-                    <Typography variant="body2" color="textSecondary">
-y                     Üyeler: {formatMembers(project.members)}
-                    </Typography>
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="body2" color="textSecondary" gutterBottom>
+                        Üyeler:
+                      </Typography>
+                      {formatMembers(project.members)}
+                    </Box>
                     {project.refereeUsername && (
                       <Typography variant="body2" color="textSecondary">
                         Danışman: {project.refereeUsername}
@@ -179,7 +202,13 @@ y                     Üyeler: {formatMembers(project.members)}
                   {projectsArray.map((project) => (
                     <TableRow key={project.id}>
                       <TableCell>{project.name}</TableCell>
-                      <TableCell>{project.description}</TableCell>
+                      <TableCell>
+                        <Tooltip title={project.description || ''}>
+                          <Typography>
+                            {truncateText(project.description)}
+                          </Typography>
+                        </Tooltip>
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={project.category?.name || 'Kategori Yok'}
@@ -187,7 +216,7 @@ y                     Üyeler: {formatMembers(project.members)}
                           color="primary"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ minWidth: '200px' }}>
                         {formatMembers(project.members)}
                       </TableCell>
                       <TableCell>

@@ -54,6 +54,7 @@ const ProjectDetail = () => {
   });
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
   useEffect(() => {
     const fetchProjectDetail = async () => {
@@ -208,60 +209,7 @@ const ProjectDetail = () => {
       </Paper>
 
       <Grid container spacing={3}>
-        {/* Ana Bilgiler Kartı */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h4" component="h1">
-                  {project?.name}
-                </Typography>
-              </Box>
-
-              <List>
-                {/* Kaptan Bilgileri - Yeni Eklendi */}
-                <ListItem>
-                  <ListItemIcon>
-                    <PersonIcon color="primary" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'medium' }}>
-                        Takım Kaptanı
-                      </Typography>
-                    }
-                    secondary={
-                      <Box sx={{ mt: 1 }}>
-                        <Typography variant="body2">
-                          {project?.student?.username}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          Öğrenci No: {project?.student?.studentNumber}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          Email: {project?.student?.email}
-                        </Typography>
-                        {project?.student?.deparment && (
-                          <Typography variant="body2" color="textSecondary">
-                            Bölüm: {project?.student?.deparment}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                  />
-                </ListItem>
-
-                <Divider variant="inset" component="li" />
-
-                {/* Mevcut ListItem'lar devam ediyor */}
-              
-                {/* ... diğer mevcut ListItem'lar ... */}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Proje Detayları */}
+        {/* Proje Detayları - Sol Taraf */}
         <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
@@ -334,67 +282,120 @@ const ProjectDetail = () => {
               </List>
             </CardContent>
           </Card>
+
+          {/* Tehlikeli Bölge Kartı */}
+          <Card sx={{ mt: 3, bgcolor: '#ffebee' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="h6" color="error">
+                  Tehlikeli Bölge
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => setOpenDeleteDialog(true)}
+                >
+                  Projeyi Sil
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
 
-        {/* Proje Üyeleri ve Mentör Kartı */}
+        {/* Proje Ekibi - Sağ Taraf */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
+          {/* Takım Kaptanı Kartı */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonIcon color="primary" />
+                Takım Kaptanı
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}>
+                  {project?.student?.username?.charAt(0)}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1">
+                    {project?.student?.username}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Öğrenci No: {project?.student?.studentNumber}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Email: {project?.student?.email}
+                  </Typography>
+                  {project?.student?.deparment && (
+                    <Typography variant="body2" color="textSecondary">
+                      Bölüm: {project?.student?.deparment}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Hakem Kartı */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonIcon color="primary" />
+                Hakem
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              {project?.referee ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: 'primary.main' }}>
+                    {project.referee?.charAt(0)}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle1">
+                      {project.referee}
+                    </Typography>
+                    {project.referee.department && (
+                      <Typography variant="body2" color="textSecondary">
+                        {project.referee.department}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              ) : (
+                <Typography color="textSecondary">
+                  Henüz hakem atanmamış
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Takım Üyeleri Kartı */}
+          <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <GroupIcon color="primary" />
-                Proje Ekibi
+                Takım Üyeleri
               </Typography>
+              <Divider sx={{ mb: 2 }} />
               
-              {/* Mentör Bilgisi */}
-              <Box sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-                <Typography variant="subtitle2" color="primary" gutterBottom>
-                  <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Hakem
-                </Typography>
-                {project?.referee ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
-                    <Avatar>
-                      {project.referee?.charAt(0)}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="body1">
-                        {project.referee}
-                      </Typography>
-                      {project.referee.department && (
-                        <Typography variant="caption" color="textSecondary">
-                          {project.referee.department}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                ) : (
-                  <Typography variant="body1" color="textSecondary">
-                    Henüz hakem atanmamış
-                  </Typography>
-                )}
-              </Box>
-
-              {/* Öğrenci Listesi */}
-              <Typography variant="subtitle2" color="primary" gutterBottom>
-                <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Öğrenciler
-              </Typography>
               <Stack spacing={2}>
                 {project?.members && project.members.length > 0 ? (
                   project.members.map((member) => (
-                    <Box key={member.id || Math.random()} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box key={member.id || Math.random()} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
                       <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        {member.firstName && member.firstName.charAt(0).toUpperCase()}
+                        {member.firstName?.charAt(0)}
                       </Avatar>
                       <Box>
-                        <Typography variant="body1">
+                        <Typography variant="subtitle2">
                           {`${member.firstName} ${member.lastName}`}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
                           {member.email}
                         </Typography>
                         <Typography variant="caption" color="textSecondary">
-                          {member.studentNumber}
+                          Öğrenci No: {member.studentNumber}
                         </Typography>
                       </Box>
                     </Box>
@@ -408,55 +409,12 @@ const ProjectDetail = () => {
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Proje Dosyası İndirme Kartı */}
-        <Grid item xs={12}>
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <PdfIcon color="primary" fontSize="large" />
-                <Typography variant="h6" sx={{ flex: 1 }}>
-                  Proje Dosyası
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={downloadLoading ? <CircularProgress size={20} color="inherit" /> : <FileDownloadIcon />}
-                  onClick={handleDownload}
-                  disabled={downloadLoading}
-                  size="large"
-                >
-                  {downloadLoading ? 'İndiriliyor...' : 'Projeyi İndir'}
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* En alta silme butonu ekle */}
-        <Grid item xs={12} sx={{ mt: 3 }}>
-          <Paper sx={{ p: 2, bgcolor: '#ffebee' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="h6" color="error">
-                Tehlikeli Bölge
-              </Typography>
-              <Button
-                variant="contained"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={() => setOpenDialog(true)}
-              >
-                Projeyi Sil
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
       </Grid>
 
       {/* Silme Onay Dialog'u */}
       <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
+        open={openDeleteDialog}
+        onClose={() => setOpenDeleteDialog(false)}
       >
         <DialogTitle>
           Projeyi Silmek İstediğinizden Emin misiniz?
@@ -468,7 +426,7 @@ const ProjectDetail = () => {
         </DialogContent>
         <DialogActions>
           <Button 
-            onClick={() => setOpenDialog(false)} 
+            onClick={() => setOpenDeleteDialog(false)} 
             disabled={deleteLoading}
           >
             İptal
@@ -478,13 +436,14 @@ const ProjectDetail = () => {
             color="error" 
             variant="contained"
             disabled={deleteLoading}
+            startIcon={deleteLoading ? <CircularProgress size={20} /> : <DeleteIcon />}
           >
             {deleteLoading ? 'Siliniyor...' : 'Evet, Sil'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar Bildirimleri */}
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

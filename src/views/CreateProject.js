@@ -57,6 +57,9 @@ const CreateProject = () => {
     severity: 'error'
   });
 
+  // Add loading state for submit button
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -128,6 +131,7 @@ const CreateProject = () => {
       return;
     }
 
+    setIsSubmitting(true);
     setLoading(true);
     setError(null);
 
@@ -166,6 +170,7 @@ const CreateProject = () => {
         error.response?.data?.message || 'Proje oluşturulurken bir hata oluştu.'
       );
     } finally {
+      setIsSubmitting(false);
       setLoading(false);
     }
   };
@@ -353,22 +358,51 @@ const CreateProject = () => {
 
                 {/* Dosya Yükleme */}
                 <Grid item xs={12}>
-                  <Button
-                    variant="outlined"
-                    component="label"
-                    fullWidth
-                    startIcon={<AttachFileIcon />}
-                    error={!!errors.projectFile}
-                  >
-                    PDF Dosyası Yükle (Zorunlu)
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      onChange={handleFileChange}
-                      style={{ display: 'none' }}
-                      required
-                    />
-                  </Button>
+                  <Box sx={{ mb: 2 }}>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      fullWidth
+                      startIcon={<AttachFileIcon />}
+                      error={!!errors.projectFile}
+                    >
+                      PDF Dosyası Yükle (Zorunlu)
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
+                        required
+                      />
+                    </Button>
+                  </Box>
+                  
+                  {/* Show selected file name */}
+                  {formData.projectFile && (
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1, 
+                      mb: 2,
+                      p: 2,
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 1
+                    }}>
+                      <PictureAsPdfIcon color="error" />
+                      <Typography>{formData.projectFile.name}</Typography>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, projectFile: null }));
+                          setFileError(null);
+                        }}
+                        sx={{ ml: 'auto' }}
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </Box>
+                  )}
+
                   {errors.projectFile && (
                     <Typography color="error" variant="body2" sx={{ mt: 1 }}>
                       {errors.projectFile}
@@ -395,9 +429,9 @@ const CreateProject = () => {
                     variant="contained"
                     color="primary"
                     fullWidth
-                    disabled={loading}
+                    disabled={isSubmitting}
                   >
-                    {loading ? <CircularProgress size={24} /> : 'Projeyi Oluştur'}
+                    {isSubmitting ? <CircularProgress size={24} /> : 'Projeyi Oluştur'}
                   </Button>
                 </Grid>
               </Grid>
