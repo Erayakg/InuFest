@@ -64,6 +64,7 @@ const ProjectDetail = () => {
         
         if (response.data.success) {
           setProject(response.data.data);
+          console.log(response.data.data);
           
         } else {
           setError('Proje bilgileri alınamadı');
@@ -85,15 +86,14 @@ const ProjectDetail = () => {
       const token = localStorage.getItem('token');
       const response = await axios({
         method: 'GET',
-        url: `/v1/project/${id}/downloadt`,
+        url: `/v1/project/${id}/download`,
         responseType: 'blob',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/pdf'
+          'Authorization': `Bearer ${token}`
         }
       });
 
-      if (response.status === 204) {
+      if (response.status === 204 || !response.data) {
         throw new Error('Dosya bulunamadı');
       }
 
@@ -101,7 +101,7 @@ const ProjectDetail = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `proje.pdf`);
+      link.setAttribute('download', 'proje.pdf');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -239,6 +239,27 @@ const ProjectDetail = () => {
 
                 <ListItem>
                   <ListItemIcon>
+                    <FileDownloadIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Proje Dosyası"
+                    secondary={
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        
+                        onClick={handleDownload}
+                        disabled={downloadLoading}
+                        sx={{ mt: 1 }}
+                      >
+                        {downloadLoading ? 'İndiriliyor...' : 'Dosyayı İndir'}
+                      </Button>
+                    }
+                  />
+                </ListItem>
+
+                <ListItem>
+                  <ListItemIcon>
                     <CategoryIcon color="primary" />
                   </ListItemIcon>
                   <ListItemText 
@@ -256,29 +277,6 @@ const ProjectDetail = () => {
                     secondary={formatDate(project?.createdDate)}
                   />
                 </ListItem>
-
-                {project?.projectFile && (
-                  <ListItem>
-                    <ListItemIcon>
-                      <AttachFileIcon color="primary" />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Proje Dosyası"
-                      secondary={
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          startIcon={downloadLoading ? <CircularProgress size={20} color="inherit" /> : <FileDownloadIcon />}
-                          onClick={handleDownload}
-                          disabled={downloadLoading}
-                          sx={{ mt: 1 }}
-                        >
-                          {downloadLoading ? 'İndiriliyor...' : 'Dosyayı İndir'}
-                        </Button>
-                      }
-                    />
-                  </ListItem>
-                )}
               </List>
             </CardContent>
           </Card>
@@ -347,20 +345,15 @@ const ProjectDetail = () => {
               </Typography>
               <Divider sx={{ mb: 2 }} />
               
-              {project?.referee ? (
+              {project?.refereeUsername ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'primary.main' }}>
-                    {project.referee?.charAt(0)}
+                    {project.refereeUsername.charAt(0)}
                   </Avatar>
                   <Box>
                     <Typography variant="subtitle1">
-                      {project.referee}
+                      {project.refereeUsername}
                     </Typography>
-                    {project.referee.department && (
-                      <Typography variant="body2" color="textSecondary">
-                        {project.referee.department}
-                      </Typography>
-                    )}
                   </Box>
                 </Box>
               ) : (
