@@ -163,7 +163,7 @@ const ProjectDetail = () => {
     try {
       if (!dateString) return 'Tarih bilgisi yok';
 
-      // ISO formatındaki tarihi parse et
+      // PostgreSQL timestamp formatını parse et
       const date = new Date(dateString);
       
       // Tarihi parçalara ayır
@@ -305,7 +305,7 @@ const ProjectDetail = () => {
                   </ListItemIcon>
                   <ListItemText 
                     primary="Oluşturulma Tarihi"
-                    secondary={new Date(project?.createDate).toLocaleDateString('tr-TR')}
+                    secondary={formatDate(project?.createdDate)}
                   />
                 </ListItem>
 
