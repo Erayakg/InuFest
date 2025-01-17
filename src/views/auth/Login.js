@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Grid, Box, Card, TextField, Button, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, CircularProgress } from "@mui/material";
+import { Grid, Box, Card, TextField, Button, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, CircularProgress, Alert, Snackbar } from "@mui/material";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 
@@ -22,6 +22,14 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showResetCode, setShowResetCode] = useState(false);
     const [resetCode, setResetCode] = useState("");
+    const [showPasswordReset, setShowPasswordReset] = useState(false);
+    const [newPasswordData, setNewPasswordData] = useState({
+        password: '',
+        confirmPassword: ''
+    });
+    const [successMessage, setSuccessMessage] = useState('');
+    const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+    const [verifyCodeLoading, setVerifyCodeLoading] = useState(false);
 
     // Slider için useEffect
     useEffect(() => {
@@ -44,6 +52,7 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
+        setIsLoading(true);
         try {
             const response = await axios.post("http://localhost:8080/v1/auth/login", {
                 mail: formData.mail,
@@ -59,10 +68,12 @@ const Login = () => {
             }
         } catch (err) {
             if (err.response?.status === 403) {
-                setOpen(true); // Pop-up'u aç
+                setOpen(true);
             } else {
                 setError(err.response?.data?.message || "Mail adresi veya şifre yanlış.");
             }
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -94,7 +105,8 @@ const Login = () => {
             return;
         }
 
-        setIsLoading(true);
+        setForgotPasswordLoading(true);
+        setError(null);
         try {
             const response = await axios.post(
                 `/v1/verification/send-reset-code`,
@@ -104,12 +116,12 @@ const Login = () => {
 
             if (response.status === 200) {
                 setShowResetCode(true);
-                alert("Şifre sıfırlama kodu e-posta adresinize gönderildi.");
+                setSuccessMessage("Şifre sıfırlama kodu e-posta adresinize gönderildi.");
             }
         } catch (err) {
             setError(err.response?.data?.message || "Şifre sıfırlama kodu gönderilemedi.");
         } finally {
-            setIsLoading(false);
+            setForgotPasswordLoading(false);
         }
     };
 
@@ -119,11 +131,55 @@ const Login = () => {
             return;
         }
 
+        setVerifyCodeLoading(true);
+        try {
+            const response = await axios.post(
+                `/v1/verification/verify-reset-code`,
+                null,
+                {
+                    params: {
+                        email: formData.mail,
+                        code: resetCode
+                    }
+                }
+            );
+
+            if (response.status === 200) {
+                setShowResetCode(false);
+                setShowPasswordReset(true);
+                setError(null);
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || "Doğrulama kodu geçersiz.");
+        } finally {
+            setVerifyCodeLoading(false);
+        }
+    };
+
+    const handlePasswordChange = (e) => {
+        setNewPasswordData({
+            ...newPasswordData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleSubmitNewPassword = async () => {
+        // Validate passwords
+        if (newPasswordData.password !== newPasswordData.confirmPassword) {
+            setError("Şifreler eşleşmiyor!");
+            return;
+        }
+
+        if (newPasswordData.password.length < 6) {
+            setError("Şifre en az 6 karakter olmalıdır!");
+            return;
+        }
+
         setIsLoading(true);
         try {
             const response = await axios.post(
-                `/v1/verification/verify-reset-code?email=${encodeURIComponent(formData.mail)}&code=${encodeURIComponent(resetCode)}`,
-                '',
+                `/v1/verification/reset-password?email=${encodeURIComponent(formData.mail)}&code=${encodeURIComponent(resetCode)}&newPassword=${encodeURIComponent(newPasswordData.password)}`,
+                '', // Boş body
                 {
                     headers: {
                         'accept': '*/*'
@@ -132,13 +188,15 @@ const Login = () => {
             );
 
             if (response.status === 200) {
-                alert("Kod doğrulama başarılı!");
+                alert("Şifreniz başarıyla değiştirildi! Lütfen yeni şifrenizle giriş yapın.");
+                // Reset states and show login form
+                setShowPasswordReset(false);
                 setShowResetCode(false);
-                setResetCode("");
-                navigate("/reset-password", { state: { email: formData.mail, code: resetCode } });
+                setNewPasswordData({ password: '', confirmPassword: '' });
+                setResetCode('');
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Doğrulama kodu geçersiz.");
+            setError(err.response?.data?.message || "Şifre değiştirme işlemi başarısız oldu.");
         } finally {
             setIsLoading(false);
         }
@@ -217,50 +275,49 @@ const Login = () => {
                                         onChange={handleChange}
                                         required
                                         type="email"
+                                        disabled={forgotPasswordLoading}
                                     />
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Şifre"
-                                        name="password"
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        required
-                                    />
-                                </Grid>
-                                {error && (
+
+                                {!showPasswordReset && !showResetCode && (
                                     <Grid item xs={12}>
-                                        <Typography color="error" textAlign="center">
-                                            {error}
-                                        </Typography>
+                                        <TextField
+                                            fullWidth
+                                            label="Şifre"
+                                            name="password"
+                                            type="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            required
+                                        />
                                     </Grid>
                                 )}
-                                <Grid item xs={12}>
-                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                        {isLoading ? (
-                                            <CircularProgress size={24} sx={{ mr: 2 }} />
-                                        ) : null}
-                                        <Button
-                                            variant="text"
-                                            onClick={handleForgotPassword}
-                                            disabled={isLoading}
-                                            sx={{ textTransform: 'none' }}
-                                        >
-                                            Şifremi Unuttum
-                                        </Button>
-                                    </Box>
-                                </Grid>
-                                {showResetCode && (
+
+                                {showResetCode && !showPasswordReset && (
                                     <>
+                                        {successMessage && (
+                                            <Grid item xs={12}>
+                                                <Alert 
+                                                    severity="success"
+                                                    sx={{ 
+                                                        bgcolor: 'success.light',
+                                                        color: 'success.dark',
+                                                        '& .MuiAlert-icon': {
+                                                            color: 'success.dark'
+                                                        }
+                                                    }}
+                                                >
+                                                    {successMessage}
+                                                </Alert>
+                                            </Grid>
+                                        )}
                                         <Grid item xs={12}>
                                             <TextField
                                                 fullWidth
                                                 label="Doğrulama Kodu"
                                                 value={resetCode}
                                                 onChange={(e) => setResetCode(e.target.value)}
-                                                disabled={isLoading}
+                                                disabled={verifyCodeLoading}
                                             />
                                         </Grid>
                                         <Grid item xs={12}>
@@ -268,9 +325,9 @@ const Login = () => {
                                                 fullWidth
                                                 variant="contained"
                                                 onClick={handleResetPassword}
-                                                disabled={isLoading}
+                                                disabled={verifyCodeLoading}
                                             >
-                                                {isLoading ? (
+                                                {verifyCodeLoading ? (
                                                     <CircularProgress size={24} color="inherit" />
                                                 ) : (
                                                     "Doğrula"
@@ -279,26 +336,113 @@ const Login = () => {
                                         </Grid>
                                     </>
                                 )}
-                                <Grid item xs={12}>
-                                    <Button
-                                        type="submit"
-                                        variant="contained"
-                                        color="primary"
-                                        fullWidth
-                                        size="large"
-                                    >
-                                        Giriş Yap
-                                    </Button>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Button
-                                        variant="text"
-                                        fullWidth
-                                        onClick={() => navigate("/register")}
-                                    >
-                                        Hesabınız yok mu? Kayıt olun
-                                    </Button>
-                                </Grid>
+
+                                {showPasswordReset && (
+                                    <>
+                                        <Grid item xs={12}>
+                                            <TextField
+                                                fullWidth
+                                                label="Yeni Şifre"
+                                                name="password"
+                                                type="password"
+                                                value={newPasswordData.password}
+                                                onChange={handlePasswordChange}
+                                                required
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <TextField
+                                                fullWidth
+                                                label="Yeni Şifre Tekrar"
+                                                name="confirmPassword"
+                                                type="password"
+                                                value={newPasswordData.confirmPassword}
+                                                onChange={handlePasswordChange}
+                                                required
+                                            />
+                                        </Grid>
+                                    </>
+                                )}
+
+                                {error && (
+                                    <Grid item xs={12}>
+                                        <Typography color="error" textAlign="center">
+                                            {error}
+                                        </Typography>
+                                    </Grid>
+                                )}
+
+                                {!showPasswordReset && !showResetCode && (
+                                    <>
+                                        <Grid item xs={12}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                <Button
+                                                    variant="text"
+                                                    onClick={handleForgotPassword}
+                                                    disabled={forgotPasswordLoading}
+                                                >
+                                                    {forgotPasswordLoading ? (
+                                                        <CircularProgress size={24} color="inherit" />
+                                                    ) : (
+                                                        "Şifremi Unuttum"
+                                                    )}
+                                                </Button>
+                                            </Box>
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <Button
+                                                type="submit"
+                                                variant="contained"
+                                                color="primary"
+                                                fullWidth
+                                                size="large"
+                                                disabled={forgotPasswordLoading}
+                                            >
+                                                {forgotPasswordLoading ? (
+                                                    <CircularProgress size={24} color="inherit" />
+                                                ) : (
+                                                    "Giriş Yap"
+                                                )}
+                                            </Button>
+                                        </Grid>
+                                    </>
+                                )}
+
+                            
+
+                                {showPasswordReset && (
+                                    <Grid item xs={12}>
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            onClick={handleSubmitNewPassword}
+                                            disabled={isLoading}
+                                        >
+                                            {isLoading ? (
+                                                <CircularProgress size={24} color="inherit" />
+                                            ) : (
+                                                "Şifreyi Değiştir"
+                                            )}
+                                        </Button>
+                                    </Grid>
+                                )}
+
+                                {!showPasswordReset && !showResetCode && (
+                                    <Grid item xs={12}>
+                                        <Button
+                                            variant="text"
+                                            fullWidth
+                                            onClick={() => navigate("/register")}
+                                            disabled={isLoading}
+                                        >
+                                            {isLoading ? (
+                                                <CircularProgress size={24} />
+                                            ) : (
+                                                "Hesabınız yok mu? Kayıt olun"
+                                            )}
+                                        </Button>
+                                    </Grid>
+                                )}
                             </Grid>
                         </form>
                     </Box>
@@ -396,6 +540,8 @@ const Login = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+          
         </Box>
     );
 };
