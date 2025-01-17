@@ -3,13 +3,13 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 
 const Menuitems = [
   {
-    title: "Anasyfa",
+    title: "Anasayfa",
     icon: DashboardOutlinedIcon,
     href: "/admin",
     roles: ["ROLE_ADMIN"]
   },
   {
-    title: "Tüm Projeler",
+    title: "Projelerim",
     icon: ListAltIcon,
     href: "/admin/projects",
     roles: ["ROLE_ADMIN"]
@@ -42,7 +42,7 @@ const Menuitems = [
     roles: ["guest"]
   },
   {
-    title: "Profile",
+    title: "Profil",
     icon: DashboardOutlinedIcon,
     href: "/profile",
     roles: ["ROLE_ADMIN", "ROLE_STUDENT", "ROLE_REFEREE"]

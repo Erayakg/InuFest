@@ -45,11 +45,7 @@ const ProjectEdit = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    console.log('Güncellenecek proje bilgileri:', {
-      ...project,
-      newFile: selectedFile?.name
-    });
+
 
     navigate('/projects');
   };

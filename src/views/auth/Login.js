@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Grid, Box, Card, TextField, Button, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Grid, Box, Card, TextField, Button, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, CircularProgress } from "@mui/material";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 
 // Slider görselleri
@@ -19,6 +19,9 @@ const Login = () => {
     });
     const [error, setError] = useState(null);
     const [open, setOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [showResetCode, setShowResetCode] = useState(false);
+    const [resetCode, setResetCode] = useState("");
 
     // Slider için useEffect
     useEffect(() => {
@@ -82,6 +85,62 @@ const Login = () => {
             } catch (verificationError) {
                 setError(verificationError.response?.data?.message || "E-posta doğrulama hatası oluştu.");
             }
+        }
+    };
+
+    const handleForgotPassword = async () => {
+        if (!formData.mail) {
+            setError("Lütfen e-posta adresinizi girin.");
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const response = await axios.post(
+                `/v1/verification/send-reset-code`,
+                null,
+                { params: { email: formData.mail } }
+            );
+
+            if (response.status === 200) {
+                setShowResetCode(true);
+                alert("Şifre sıfırlama kodu e-posta adresinize gönderildi.");
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || "Şifre sıfırlama kodu gönderilemedi.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!resetCode) {
+            setError("Lütfen doğrulama kodunu girin.");
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const response = await axios.post(
+                `/v1/verification/verify-reset-code?email=${encodeURIComponent(formData.mail)}&code=${encodeURIComponent(resetCode)}`,
+                '',
+                {
+                    headers: {
+                        'accept': '*/*'
+                    }
+                }
+            );
+
+            if (response.status === 200) {
+                alert("Kod doğrulama başarılı!");
+                setShowResetCode(false);
+                setResetCode("");
+                navigate("/reset-password", { state: { email: formData.mail, code: resetCode } });
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || "Doğrulama kodu geçersiz.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -177,6 +236,48 @@ const Login = () => {
                                             {error}
                                         </Typography>
                                     </Grid>
+                                )}
+                                <Grid item xs={12}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                        {isLoading ? (
+                                            <CircularProgress size={24} sx={{ mr: 2 }} />
+                                        ) : null}
+                                        <Button
+                                            variant="text"
+                                            onClick={handleForgotPassword}
+                                            disabled={isLoading}
+                                            sx={{ textTransform: 'none' }}
+                                        >
+                                            Şifremi Unuttum
+                                        </Button>
+                                    </Box>
+                                </Grid>
+                                {showResetCode && (
+                                    <>
+                                        <Grid item xs={12}>
+                                            <TextField
+                                                fullWidth
+                                                label="Doğrulama Kodu"
+                                                value={resetCode}
+                                                onChange={(e) => setResetCode(e.target.value)}
+                                                disabled={isLoading}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                onClick={handleResetPassword}
+                                                disabled={isLoading}
+                                            >
+                                                {isLoading ? (
+                                                    <CircularProgress size={24} color="inherit" />
+                                                ) : (
+                                                    "Doğrula"
+                                                )}
+                                            </Button>
+                                        </Grid>
+                                    </>
                                 )}
                                 <Grid item xs={12}>
                                     <Button

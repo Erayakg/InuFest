@@ -27,9 +27,9 @@ const Profile = () => {
     username: "",
     email: "",
     phoneNumber: "",
-    department: "",
     studentNumber: "",
-    role: "",
+    department: "",
+    role: "Öğrenci",
     faculty: "",
     classNumber: "",
   });
@@ -56,8 +56,19 @@ const Profile = () => {
         
         if (response.data.success) {
           const profileData = response.data.data;
-          setUserData(profileData);
-          setEditData(profileData);
+          const newUserData = {
+            username: profileData.username || "",
+            email: profileData.email || "",
+            phoneNumber: profileData.phoneNumber || "",
+            studentNumber: profileData.studentNumber || "",
+            department: profileData.deparment || "",
+            role: "Öğrenci",
+            faculty: profileData.faculty || "",
+            classNumber: profileData.classNumber || "",
+          };
+          
+          setUserData(newUserData);
+          setEditData(newUserData);
         }
       } catch (err) {
         console.error('Profil verisi çekilirken hata:', err);
@@ -111,37 +122,53 @@ const Profile = () => {
   if (error) return <div>{error}</div>;
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
       <Grid container spacing={3}>
         {/* Profil Kartı */}
         <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
+          <Card sx={{ 
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            borderRadius: '16px',
+            transition: 'transform 0.2s',
+            '&:hover': {
+              transform: 'translateY(-5px)'
+            }
+          }}>
+            <CardContent sx={{ textAlign: 'center', p: 4 }}>
               <Avatar
                 sx={{
-                  width: 100,
-                  height: 100,
-                  margin: '0 auto 16px auto',
-                  fontSize: '2rem',
-                  bgcolor: 'primary.main'
+                  width: 120,
+                  height: 120,
+                  margin: '0 auto 24px auto',
+                  fontSize: '2.5rem',
+                  bgcolor: 'primary.main',
+                  border: '4px solid #fff',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
                 }}
               >
                 {userData.username ? userData.username.charAt(0).toUpperCase() : 'U'}
               </Avatar>
-              <Typography variant="h5" gutterBottom>
+              <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
                 {userData.username}
               </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
+              <Typography variant="body1" color="primary" gutterBottom sx={{ mb: 1 }}>
                 {userData.role}
               </Typography>
-              <Typography variant="body2" color="textSecondary">
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
                 {userData.department}
               </Typography>
               {!isEditing && (
                 <Button
                   variant="contained"
                   startIcon={<EditIcon />}
-                  sx={{ mt: 2 }}
+                  sx={{ 
+                    mt: 2,
+                    borderRadius: '25px',
+                    px: 3,
+                    py: 1,
+                    textTransform: 'none',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                  }}
                   onClick={handleEdit}
                 >
                   Profili Düzenle
@@ -153,26 +180,64 @@ const Profile = () => {
 
         {/* Detay Kartı */}
         <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6">Kişisel Bilgiler</Typography>
+          <Card sx={{ 
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            borderRadius: '16px'
+          }}>
+            <CardContent sx={{ p: 4 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                mb: 4,
+                borderBottom: '2px solid #f0f0f0',
+                pb: 2
+              }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  Kişisel Bilgiler
+                </Typography>
                 {isEditing && (
                   <Box>
-                    <IconButton color="primary" onClick={handleSave}>
+                    <IconButton 
+                      color="primary" 
+                      onClick={handleSave}
+                      sx={{ 
+                        backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                        mr: 1,
+                        '&:hover': {
+                          backgroundColor: 'rgba(25, 118, 210, 0.2)'
+                        }
+                      }}
+                    >
                       <SaveIcon />
                     </IconButton>
-                    <IconButton color="error" onClick={handleCancel}>
+                    <IconButton 
+                      color="error" 
+                      onClick={handleCancel}
+                      sx={{ 
+                        backgroundColor: 'rgba(211, 47, 47, 0.1)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(211, 47, 47, 0.2)'
+                        }
+                      }}
+                    >
                       <CancelIcon />
                     </IconButton>
                   </Box>
                 )}
               </Box>
 
-              <Grid container spacing={3}>
+              <Grid container spacing={4}>
                 <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <BadgeIcon sx={{ mr: 2, color: 'primary.main' }} />
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 2,
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                    p: 2,
+                    borderRadius: '12px'
+                  }}>
+                    <BadgeIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
                     {isEditing ? (
                       <TextField
                         fullWidth
@@ -180,16 +245,29 @@ const Profile = () => {
                         label="Ad Soyad"
                         value={editData.username}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: '#fff'
+                          }
+                        }}
                       />
                     ) : (
-                      <Typography>{userData.username}</Typography>
+                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.username}</Typography>
                     )}
                   </Box>
                 </Grid>
 
                 <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <SchoolIcon sx={{ mr: 2, color: 'primary.main' }} />
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 2,
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                    p: 2,
+                    borderRadius: '12px'
+                  }}>
+                    <SchoolIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
                     {isEditing ? (
                       <TextField
                         fullWidth
@@ -197,16 +275,29 @@ const Profile = () => {
                         label="Öğrenci Numarası"
                         value={editData.studentNumber}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: '#fff'
+                          }
+                        }}
                       />
                     ) : (
-                      <Typography>{userData.studentNumber}</Typography>
+                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.studentNumber}</Typography>
                     )}
                   </Box>
                 </Grid>
 
                 <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <EmailIcon sx={{ mr: 2, color: 'primary.main' }} />
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 2,
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                    p: 2,
+                    borderRadius: '12px'
+                  }}>
+                    <EmailIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
                     {isEditing ? (
                       <TextField
                         fullWidth
@@ -214,16 +305,29 @@ const Profile = () => {
                         label="E-posta"
                         value={editData.email}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: '#fff'
+                          }
+                        }}
                       />
                     ) : (
-                      <Typography>{userData.email}</Typography>
+                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.email}</Typography>
                     )}
                   </Box>
                 </Grid>
 
                 <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <PhoneIcon sx={{ mr: 2, color: 'primary.main' }} />
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 2,
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                    p: 2,
+                    borderRadius: '12px'
+                  }}>
+                    <PhoneIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
                     {isEditing ? (
                       <TextField
                         fullWidth
@@ -231,9 +335,15 @@ const Profile = () => {
                         label="Telefon"
                         value={editData.phoneNumber}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: '#fff'
+                          }
+                        }}
                       />
                     ) : (
-                      <Typography>{userData.phoneNumber}</Typography>
+                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.phoneNumber}</Typography>
                     )}
                   </Box>
                 </Grid>

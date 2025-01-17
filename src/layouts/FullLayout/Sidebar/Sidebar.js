@@ -13,6 +13,7 @@ import {
 import { SidebarWidth } from "../../../assets/global/Theme-variable";
 import Menuitems from "./data";
 import axios from "axios";
+import logoInonu from '../../../assets/images/logo-inonu.png';
 
 const Sidebar = (props) => {
   const [open, setOpen] = React.useState(true);
@@ -71,43 +72,27 @@ const Sidebar = (props) => {
     <Box sx={{ 
       p: 3,
       height: "100vh",
-      "& .simplebar-scrollbar": {
-        "&:before": {
-          backgroundColor: "rgba(0,0,0,.05)",
-        },
-      },
     }}>
       <Link to="/">
-        <Box sx={{ display: "flex", alignItems: "Center" }}>
-        
+        <Box sx={{ 
+          display: "flex", 
+          alignItems: "Center",
+          justifyContent: "center",
+          mb: 2
+        }}>
+          <img 
+            src={logoInonu} 
+            alt="İnönü Üniversitesi Logo" 
+            style={{
+              width: '140px',
+              height: 'auto',
+              maxWidth: '100%'
+            }}
+          />
         </Box>
       </Link>
 
-     
-
-      <Box
-        sx={{
-          mt: 4,
-          height: "calc(100vh - 120px)",
-          overflowY: "auto",
-          scrollbarWidth: "thin",
-          scrollbarColor: "rgba(0,0,0,.2) transparent",
-          "&::-webkit-scrollbar": {
-            width: "8px",
-          },
-          "&::-webkit-scrollbar-track": {
-            background: "#f1f1f1",
-            borderRadius: "10px",
-          },
-          "&::-webkit-scrollbar-thumb": {
-            background: "#c1c1c1",
-            borderRadius: "10px",
-            "&:hover": {
-              background: "#a8a8a8",
-            },
-          },
-        }}
-      >
+      <Box>
         <List>
           {filteredMenuItems.map((item, index) => {
             if (item.href === '/logout') {
