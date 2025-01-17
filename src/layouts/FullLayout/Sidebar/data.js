@@ -9,7 +9,7 @@ const Menuitems = [
     roles: ["ROLE_ADMIN"]
   },
   {
-    title: "Projelerim",
+    title: "Tüm Projeler",
     icon: ListAltIcon,
     href: "/admin/projects",
     roles: ["ROLE_ADMIN"]

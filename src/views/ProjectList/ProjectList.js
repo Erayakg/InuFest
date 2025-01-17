@@ -44,7 +44,7 @@ const ProjectList = () => {
         
         if (response.data.success && Array.isArray(response.data.data)) {
           setProjects(response.data.data);
-         
+       
         } else if (response.data.success && response.data.data) {
           setProjects([response.data.data]);
         } else {
@@ -141,7 +141,7 @@ const ProjectList = () => {
                       Kategori: {project.category?.name || 'Kategori Yok'}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
-                      Üyeler: {formatMembers(project.members)}
+y                     Üyeler: {formatMembers(project.members)}
                     </Typography>
                     {project.refereeUsername && (
                       <Typography variant="body2" color="textSecondary">

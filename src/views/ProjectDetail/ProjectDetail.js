@@ -205,7 +205,6 @@ const ProjectDetail = () => {
         <Typography variant="h4" gutterBottom>
           {project?.name}
         </Typography>
-       
       </Paper>
 
       <Grid container spacing={3}>
@@ -219,52 +218,45 @@ const ProjectDetail = () => {
                 </Typography>
               </Box>
 
-              <Grid container spacing={3}>
-                {/* Kategori */}
-                <Grid item xs={12} md={4}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CategoryIcon color="primary" />
-                    <Box>
-                      <Typography variant="subtitle2" color="textSecondary">
-                        Kategori
-                      </Typography>
-                      <Typography variant="body1">
-                        {project?.category?.name}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-
-                {/* Mentör */}
-                <Grid item xs={12} md={4}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <List>
+                {/* Kaptan Bilgileri - Yeni Eklendi */}
+                <ListItem>
+                  <ListItemIcon>
                     <PersonIcon color="primary" />
-                    <Box>
-                      <Typography variant="subtitle2" color="textSecondary">
-                        Proje Mentörü
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'medium' }}>
+                        Takım Kaptanı
                       </Typography>
-                      <Typography variant="body1">
-                        {project?.referee || 'Atanmamış'}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
+                    }
+                    secondary={
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2">
+                          {project?.student?.username}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          Öğrenci No: {project?.student?.studentNumber}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          Email: {project?.student?.email}
+                        </Typography>
+                        {project?.student?.deparment && (
+                          <Typography variant="body2" color="textSecondary">
+                            Bölüm: {project?.student?.deparment}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                  />
+                </ListItem>
 
-                {/* Oluşturulma Tarihi */}
-                <Grid item xs={12} md={4}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <EventIcon color="primary" />
-                    <Box>
-                      <Typography variant="subtitle2" color="textSecondary">
-                        Oluşturulma Tarihi
-                      </Typography>
-                      <Typography variant="body1">
-                        {formatDate(project?.createdDate)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-              </Grid>
+                <Divider variant="inset" component="li" />
+
+                {/* Mevcut ListItem'lar devam ediyor */}
+              
+                {/* ... diğer mevcut ListItem'lar ... */}
+              </List>
             </CardContent>
           </Card>
         </Grid>
