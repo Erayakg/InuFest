@@ -8,8 +8,13 @@ import {
   Button,
   Typography,
   Autocomplete,
+  Box,
+  IconButton,
 } from "@mui/material";
 import { useNavigate } from 'react-router-dom';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import CloseIcon from '@mui/icons-material/Close';
 
 const CreateProject = () => {
   const navigate = useNavigate();
@@ -78,44 +83,62 @@ const CreateProject = () => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setFileError(null);
+    if (file) {
+      // PDF dosyası kontrolü
+      if (file.type !== 'application/pdf') {
+        setFileError('Lütfen sadece PDF dosyası yükleyin');
+        return;
+      }
+      setFormData(prev => ({
+        ...prev,
+        projectFile: file
+      }));
+      setFileError(null);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
+  
     try {
       const token = localStorage.getItem('token');
       const formDataToSend = new FormData();
-
-      // formData state'inden değerleri al
+  
+      // Form verilerini ekle
       formDataToSend.append('name', formData.name);
       formDataToSend.append('description', formData.description);
       formDataToSend.append('categoryId', formData.categoryId);
-      
-      // StudentId array'ini ayrı ayrı ekle
-      formData.StudentId.forEach(id => {
+  
+      // StudentId array'ini formData'ya ekle
+      formData.StudentId.forEach((id) => {
         formDataToSend.append('StudentId', id);
       });
-
-      // PDF dosyasını kontrol et ve ekle
+      
+      // PDF dosyasını ekle, dosyanın varlığını kontrol et
       if (formData.projectFile) {
-        formDataToSend.append('projectFile', formData.projectFile, formData.projectFile.name);
+        console.log('Dosya gönderiliyor:', formData.projectFile);
+        formDataToSend.append('projectFile', formData.projectFile);
+      } else {
+        console.log('Dosya bulunamadı.');
       }
-
-      const response = await axios({
-        method: 'POST',
-        url: '/v1/project/student/createProject',
-        data: formDataToSend,
+      
+      // FormData içeriğini kontrol et
+      for (const [key, value] of formDataToSend.entries()) {
+        console.log(`${key}:`, value);
+      }
+  
+      // Axios isteği
+      const response = await axios.post('/v1/project/student/createProject', formDataToSend, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          // 'Content-Type': 'multipart/form-data' // Axios otomatik ayarlar, eklemeyin
         },
-        responseType: 'json'
       });
-
+  
+      // Başarılı yanıt
       if (response.data.success) {
         console.log('Proje başarıyla oluşturuldu:', response.data);
         navigate('/projects');
@@ -123,14 +146,13 @@ const CreateProject = () => {
     } catch (error) {
       console.error('Proje oluşturma hatası:', error);
       setError(
-        error.response?.data?.message || 
-        'Proje oluşturulurken bir hata oluştu. Lütfen tüm alanları kontrol edin.'
+        error.response?.data?.message || 'Proje oluşturulurken bir hata oluştu. Lütfen tüm alanları kontrol edin.'
       );
     } finally {
       setLoading(false);
     }
   };
-
+  
   return (
     <Grid container spacing={0}>
       <Grid item xs={12} lg={12}>
@@ -210,26 +232,47 @@ const CreateProject = () => {
                 </Grid>
 
                 <Grid item xs={12}>
-                  <Button
-                    variant="contained"
-                    component="label"
-                    fullWidth
-                    sx={{ mt: 2 }}
-                  >
-                    PDF Dosyası Yükle
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      onChange={handleFileChange}
-                      style={{ display: 'none' }}
-                      id="project-file-input"
-                    />
-                  </Button>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                    id="project-file-input"
+                  />
+                  <label htmlFor="project-file-input">
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      fullWidth
+                      startIcon={<AttachFileIcon />}
+                      sx={{ mt: 2 }}
+                    >
+                      PDF Dosyası Yükle
+                    </Button>
+                  </label>
+                  
                   {formData.projectFile && (
-                    <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
-                      Seçilen dosya: {formData.projectFile.name}
-                    </Typography>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      mt: 2,
+                      p: 2,
+                      bgcolor: '#f5f5f5',
+                      borderRadius: 1
+                    }}>
+                      <PictureAsPdfIcon sx={{ mr: 1, color: 'primary.main' }} />
+                      <Typography variant="body2" sx={{ flex: 1 }}>
+                        {formData.projectFile.name}
+                      </Typography>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => setFormData(prev => ({ ...prev, projectFile: null }))}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
                   )}
+                  
                   {fileError && (
                     <Typography variant="body2" color="error" sx={{ mt: 1 }}>
                       {fileError}
