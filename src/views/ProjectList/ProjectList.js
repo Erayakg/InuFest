@@ -44,7 +44,6 @@ const ProjectList = () => {
         
         if (response.data.success && Array.isArray(response.data.data)) {
           setProjects(response.data.data);
-       
         } else if (response.data.success && response.data.data) {
           setProjects([response.data.data]);
         } else {
@@ -66,7 +65,6 @@ const ProjectList = () => {
     navigate(`/projectDetails/${id}`);
   };
 
-  // Tarih formatı için yardımcı fonksiyon
   const formatDate = (dateString) => {
     try {
       const date = new Date(dateString);
@@ -84,7 +82,6 @@ const ProjectList = () => {
     }
   };
 
-  // Add helper function for truncating text
   const truncateText = (text, wordCount = 4) => {
     if (!text) return '';
     const words = text.split(' ');
@@ -92,7 +89,22 @@ const ProjectList = () => {
     return words.slice(0, wordCount).join(' ') + '...';
   };
 
-  // Update formatMembers function
+  const formatReferees = (refereeList) => {
+    if (!refereeList || refereeList.length === 0) return 'Danışman Atanmamış';
+    return (
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+        {refereeList.map((referee, index) => (
+          <Chip
+            key={index}
+            label={referee}
+            size="small"
+            variant="outlined"
+          />
+        ))}
+      </Box>
+    );
+  };
+
   const formatMembers = (members) => {
     if (!members || members.length === 0) return 'Üye Yok';
     return (
@@ -140,7 +152,7 @@ const ProjectList = () => {
     <Box>
       <Card variant="outlined">
         <CardContent>
-          <Typography variant="h3" mb={3}>
+          <Typography variant="h5" mb={3}>
             Projeler
           </Typography>
           
@@ -166,18 +178,23 @@ const ProjectList = () => {
                       </Typography>
                       {formatMembers(project.members)}
                     </Box>
-                    {project.refereeUsername && (
-                      <Typography variant="body2" color="textSecondary">
-                        Danışman: {project.refereeUsername}
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="body2" color="textSecondary" gutterBottom>
+                        Danışmanlar:
                       </Typography>
-                    )}
+                      {formatReferees(project.refereeUsernameList)}
+                    </Box>
                   </Box>
                   
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="caption" color="textSecondary">
                       Oluşturulma: {formatDate(project.createdDate)}
                     </Typography>
-                    <IconButton size="small" onClick={() => handleView(project.id)} color="primary">
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleView(project.id)} 
+                      color="primary"
+                    >
                       <VisibilityIcon />
                     </IconButton>
                   </Box>
@@ -193,7 +210,7 @@ const ProjectList = () => {
                     <TableCell><strong>Açıklama</strong></TableCell>
                     <TableCell><strong>Kategori</strong></TableCell>
                     <TableCell><strong>Üyeler</strong></TableCell>
-                    <TableCell><strong>Danışman</strong></TableCell>
+                    <TableCell><strong>Danışmanlar</strong></TableCell>
                     <TableCell><strong>Oluşturulma</strong></TableCell>
                     <TableCell><strong>İşlemler</strong></TableCell>
                   </TableRow>
@@ -214,13 +231,14 @@ const ProjectList = () => {
                           label={project.category?.name || 'Kategori Yok'}
                           size="small"
                           color="primary"
+                          variant="outlined"
                         />
                       </TableCell>
                       <TableCell sx={{ minWidth: '200px' }}>
                         {formatMembers(project.members)}
                       </TableCell>
-                      <TableCell>
-                        {project.refereeUsername || 'Atanmamış'}
+                      <TableCell sx={{ minWidth: '200px' }}>
+                        {formatReferees(project.refereeUsernameList)}
                       </TableCell>
                       <TableCell>
                         {formatDate(project.createdDate)}
@@ -248,4 +266,4 @@ const ProjectList = () => {
   );
 };
 
-export default ProjectList; 
+export default ProjectList;

@@ -341,21 +341,25 @@ const ProjectDetail = () => {
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PersonIcon color="primary" />
-                Hakem
+                Hakemler
               </Typography>
               <Divider sx={{ mb: 2 }} />
               
-              {project?.refereeUsername ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'primary.main' }}>
-                    {project.refereeUsername.charAt(0)}
-                  </Avatar>
-                  <Box>
-                    <Typography variant="subtitle1">
-                      {project.refereeUsername}
-                    </Typography>
-                  </Box>
-                </Box>
+              {project?.refereeUsernameList && project.refereeUsernameList.length > 0 ? (
+                <Stack spacing={2}>
+                  {project.refereeUsernameList.map((referee, index) => (
+                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Avatar sx={{ bgcolor: 'primary.main' }}>
+                        {referee.charAt(0)}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="subtitle1">
+                          {referee}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Stack>
               ) : (
                 <Typography color="textSecondary">
                   Henüz hakem atanmamış

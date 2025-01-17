@@ -25,11 +25,19 @@ import {
   MenuItem,
   TextField,
   CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Chip,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   Assignment as ProjectIcon,
   Person as MentorIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 
 const AdminPage = () => {
@@ -57,7 +65,15 @@ const AdminPage = () => {
     addMentor: false,
     addCategory: false,
     updateCategory: false,
-    deleteCategory: false
+    deleteCategory: false,
+    removeMentor: false
+  });
+  const [assignedMentors, setAssignedMentors] = useState({});
+  const [assignmentError, setAssignmentError] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'info'
   });
 
   useEffect(() => {
@@ -69,29 +85,46 @@ const AdminPage = () => {
   const fetchAllProjects = async () => {
     setIsLoading(prev => ({ ...prev, fetchData: true }));
     try {
-      const [withMentorRes, withoutMentorRes] = await Promise.all([
-        axios.get('/v1/project/admin/withReferee'),
-        axios.get('/v1/project/admin/withoutReferee')
-      ]);
+      // Tüm projeleri çek
+      const projectsResponse = await axios.get('/v1/project');
+      const allProjects = projectsResponse.data.data;
 
-      const withMentor = withMentorRes.data.data.map(project => ({
+      // Her proje için mentör atamalarını çek
+      const projectsWithReferees = await Promise.all(
+        allProjects.map(async (project) => {
+          const refereesResponse = await axios.get(`/v1/project-referees/by-project/${project.id}`);
+          return {
+            ...project,
+            referees: refereesResponse.data.map(referee => ({
+              id: referee.id,
+              refereeId: referee.refereeId,
+              name: referee.refereeName,
+              assessment: referee.assessment
+            })) || []
+          };
+        })
+      );
+
+      // Mentörü olan ve olmayan projeleri ayır
+      const withMentor = projectsWithReferees.filter(project => project.referees.length > 0);
+      const withoutMentor = projectsWithReferees.filter(project => project.referees.length === 0);
+
+      setProjectsWithMentor(withMentor.map(project => ({
         id: project.id,
         name: project.name,
         creator: project.creator,
-        mentor: project.referee?.name,
+        referees: project.referees,
         status: 'Devam Ediyor'
-      }));
+      })));
 
-      const withoutMentor = withoutMentorRes.data.data.map(project => ({
+      setProjectsWithoutMentor(withoutMentor.map(project => ({
         id: project.id,
         name: project.name,
         creator: project.creator,
-        mentor: null,
+        referees: [],
         status: 'Mentör Bekleniyor'
-      }));
+      })));
 
-      setProjectsWithMentor(withMentor);
-      setProjectsWithoutMentor(withoutMentor);
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {
@@ -118,9 +151,24 @@ const AdminPage = () => {
     }
   };
 
-  const handleAssignMentor = (project) => {
+  const fetchAssignedMentors = async (projectId) => {
+    try {
+      const response = await axios.get(`/v1/project-referees/by-project/${projectId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching assigned mentors:', error);
+      return [];
+    }
+  };
+
+  const handleAssignMentor = async (project) => {
+    setAssignmentError(null);
     setSelectedProject(project);
     setSelectedMentor('');
+    
+    const assignments = await fetchAssignedMentors(project.id);
+    setAssignedMentors(assignments);
+    
     setOpenAssignDialog(true);
   };
 
@@ -131,16 +179,69 @@ const AdminPage = () => {
   };
 
   const handleSaveAssignment = async () => {
-    if (selectedMentor && selectedProject) {
-      setIsLoading(prev => ({ ...prev, assignMentor: true }));
+    if (!selectedMentor || !selectedProject) return;
+    
+    setIsLoading(prev => ({ ...prev, assignMentor: true }));
+    setAssignmentError(null);
+
+    try {
+      const mentorAssignments = await axios.get(`/v1/project-referees/by-referee/${selectedMentor}`);
+      const isAlreadyAssigned = mentorAssignments.data.some(
+        assignment => assignment.projectId === selectedProject.id
+      );
+
+      if (isAlreadyAssigned) {
+        setAssignmentError('Bu mentör zaten bu projeye atanmış!');
+        return;
+      }
+
+      await axios.post('/v1/project-referees', {
+        projectId: selectedProject.id,
+        refereeId: selectedMentor
+      });
+      
+      await fetchAllProjects();
+      handleCloseDialog();
+    } catch (error) {
+      console.error('Error assigning mentor:', error);
+      setAssignmentError(error.response?.data?.message || 'Mentor atama işlemi başarısız oldu');
+    } finally {
+      setIsLoading(prev => ({ ...prev, assignMentor: false }));
+    }
+  };
+
+  const handleRemoveMentor = async (projectId, refereeId, refereeName) => {
+    console.log('Removing mentor with params:', { projectId, refereeId, refereeName });
+    
+    if (window.confirm(`${refereeName} isimli mentörü projeden silmek istediğinize emin misiniz?`)) {
+      setIsLoading(prev => ({ ...prev, removeMentor: true }));
       try {
-        await axios.put(`/v1/project/admin/assignMentorToProject/admin/${selectedProject.id}/${selectedMentor}`);
-        await Promise.all([fetchAllProjects(), fetchMentors()]);
-        handleCloseDialog();
+        // Proje-hakem ilişkisini silmek için doğru ID'yi kullanıyoruz
+        const projectReferees = await axios.get(`/v1/project-referees/by-project/${projectId}`);
+        const refereeAssignment = projectReferees.data.find(ref => ref.refereeId === refereeId);
+        
+        if (!refereeAssignment) {
+          throw new Error('Mentör ataması bulunamadı');
+        }
+
+        // Atama ID'si ile silme işlemi yapıyoruz
+        await axios.delete(`/v1/project-referees/${refereeAssignment.id}`);
+        
+        await fetchAllProjects();
+        setSnackbar({
+          open: true,
+          message: 'Mentör başarıyla kaldırıldı',
+          severity: 'success'
+        });
       } catch (error) {
-        console.error('Error assigning mentor:', error);
+        console.error('Error removing mentor:', error);
+        setSnackbar({
+          open: true,
+          message: `Mentör kaldırılırken bir hata oluştu: ${error.message}`,
+          severity: 'error'
+        });
       } finally {
-        setIsLoading(prev => ({ ...prev, assignMentor: false }));
+        setIsLoading(prev => ({ ...prev, removeMentor: false }));
       }
     }
   };
@@ -279,8 +380,8 @@ const AdminPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Proje Adı</TableCell>
-                <TableCell>Oluşturan</TableCell>
-                <TableCell>Mevcut Mentör</TableCell>
+              
+                <TableCell>Mentörler</TableCell>
                 <TableCell>Durum</TableCell>
                 <TableCell align="right">İşlem</TableCell>
               </TableRow>
@@ -289,16 +390,47 @@ const AdminPage = () => {
               {[...projectsWithoutMentor, ...projectsWithMentor].map((project) => (
                 <TableRow key={project.id}>
                   <TableCell>{project.name}</TableCell>
-                  <TableCell>{project.creator}</TableCell>
-                  <TableCell>{project.mentor || 'Atanmamış'}</TableCell>
-                  <TableCell>{project.status}</TableCell>
+                  
+                  <TableCell>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {project.referees && project.referees.length > 0 ? (
+                        project.referees.map(referee => (
+                          <Chip
+                            key={referee.id}
+                            label={referee.name}
+                            size="small"
+                            color={referee.assessment ? "success" : "primary"}
+                            variant="outlined"
+                            onDelete={() => handleRemoveMentor(project.id, referee.refereeId, referee.name)}
+                            sx={{ 
+                              '& .MuiChip-deleteIcon': {
+                                color: 'error.main',
+                                '&:hover': {
+                                  color: 'error.dark'
+                                }
+                              }
+                            }}
+                          />
+                        ))
+                      ) : (
+                        <Chip
+                          label="Mentör Atanmamış"
+                          size="small"
+                          color="default"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    {project.referees?.length > 0 ? 'Devam Ediyor' : 'Mentör Bekleniyor'}
+                  </TableCell>
                   <TableCell align="right">
                     <LoadingButton
                       loading={isLoading.assignMentor}
                       variant="contained"
                       size="small"
                       onClick={() => handleAssignMentor(project)}
-                      disabled={project.mentor !== null}
                     >
                       Mentör Ata
                     </LoadingButton>
@@ -567,6 +699,93 @@ const AdminPage = () => {
     </>
   );
 
+  const renderAssignmentDialog = () => (
+    <Dialog open={openAssignDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        Mentör Ata: {selectedProject?.name}
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ mt: 2 }}>
+          {assignmentError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {assignmentError}
+            </Alert>
+          )}
+
+          {selectedProject?.referees && selectedProject.referees.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Mevcut Mentörler
+              </Typography>
+              <List>
+                {selectedProject.referees.map((referee) => (
+                  <ListItem key={referee.id}>
+                    <ListItemText 
+                      primary={referee.name}
+                      secondary={
+                        referee.assessment 
+                          ? "Değerlendirme yapılmış" 
+                          : "Değerlendirme bekleniyor"
+                      }
+                    />
+                    <ListItemSecondaryAction>
+                      <LoadingButton
+                        edge="end"
+                        onClick={() => handleRemoveMentor(
+                          selectedProject.id, 
+                          referee.refereeId, 
+                          referee.name
+                        )}
+                        loading={isLoading.removeMentor}
+                        color="error"
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </LoadingButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
+
+          <FormControl fullWidth>
+            <InputLabel>Yeni Mentör Seç</InputLabel>
+            <Select
+              value={selectedMentor}
+              onChange={(e) => {
+                setSelectedMentor(e.target.value);
+                setAssignmentError(null);
+              }}
+              label="Yeni Mentör Seç"
+            >
+              {mentors
+                .filter(mentor => 
+                  !selectedProject?.referees?.some(ref => ref.id === mentor.id)
+                )
+                .map(mentor => (
+                  <MenuItem key={mentor.id} value={mentor.id}>
+                    {mentor.name} - {mentor.categoryName}
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleCloseDialog}>İptal</Button>
+        <LoadingButton
+          onClick={handleSaveAssignment}
+          loading={isLoading.assignMentor}
+          variant="contained"
+          disabled={!selectedMentor || Boolean(assignmentError)}
+        >
+          Ata
+        </LoadingButton>
+      </DialogActions>
+    </Dialog>
+  );
+
   return (
     <Box sx={{ p: 3 }}>
       <Grid container spacing={3}>
@@ -621,42 +840,22 @@ const AdminPage = () => {
         </Grid>
       </Grid>
 
-      <Dialog open={openAssignDialog} onClose={handleCloseDialog}>
-        <DialogTitle>
-          Mentör Ata: {selectedProject?.name}
-        </DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel>Mentör Seç</InputLabel>
-            <Select
-              value={selectedMentor}
-              label="Mentör Seç"
-              onChange={(e) => setSelectedMentor(e.target.value)}
-            >
-              {mentors.map(mentor => (
-                <MenuItem 
-                  key={mentor.id} 
-                  value={mentor.id}
-                  disabled={mentor.activeProjects >= 3}
-                >
-                  {mentor.name} {mentor.expertise}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>İptal</Button>
-          <LoadingButton
-            loading={isLoading.assignMentor}
-            onClick={handleSaveAssignment}
-            variant="contained"
-            disabled={!selectedMentor}
-          >
-            Ata
-          </LoadingButton>
-        </DialogActions>
-      </Dialog>
+      {renderAssignmentDialog()}
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

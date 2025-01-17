@@ -89,8 +89,8 @@ const ProjectList = () => {
     )
     .filter(project => {
       if (mentorFilter === "all") return true;
-      if (mentorFilter === "assigned") return !!project.refereeUsername;
-      if (mentorFilter === "unassigned") return !project.refereeUsername;
+      if (mentorFilter === "assigned") return project.refereeUsernameList && project.refereeUsernameList.length > 0;
+      if (mentorFilter === "unassigned") return !project.refereeUsernameList || project.refereeUsernameList.length === 0;
       return true;
     });
 
@@ -306,7 +306,9 @@ const ProjectList = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <SupervisorAccountIcon color="primary" fontSize="small" />
                         <Typography variant="body2" color="textSecondary">
-                          Danışman: {project.refereeUsername || 'Atanmamış'}
+                          Danışmanlar: {project.refereeUsernameList?.length > 0 
+                            ? project.refereeUsernameList.join(', ') 
+                            : 'Atanmamış'}
                         </Typography>
                       </Box>
                     </Box>
@@ -343,7 +345,7 @@ const ProjectList = () => {
                     <TableCell><strong>Kategori</strong></TableCell>
                     <TableCell><strong>Kaptan</strong></TableCell>
                     <TableCell><strong>Üyeler</strong></TableCell>
-                    <TableCell><strong>Danışman</strong></TableCell>
+                    <TableCell><strong>Danışmanlar</strong></TableCell>
                     <TableCell><strong>Oluşturulma</strong></TableCell>
                     <TableCell align="center"><strong>İşlemler</strong></TableCell>
                   </TableRow>
@@ -380,12 +382,25 @@ const ProjectList = () => {
                       </TableCell>
                       <TableCell>{formatMembers(project.members)}</TableCell>
                       <TableCell>
-                        <Chip 
-                          label={project.refereeUsername || 'Atanmamış'}
-                          size="small"
-                          color={project.refereeUsername ? "success" : "default"}
-                          variant="outlined"
-                        />
+                        {project.refereeUsernameList?.length > 0 ? (
+                          project.refereeUsernameList.map((referee, index) => (
+                            <Chip 
+                              key={index}
+                              label={referee}
+                              size="small"
+                              color="success"
+                              variant="outlined"
+                              sx={{ mr: 0.5, mb: 0.5 }}
+                            />
+                          ))
+                        ) : (
+                          <Chip 
+                            label="Atanmamış"
+                            size="small"
+                            color="default"
+                            variant="outlined"
+                          />
+                        )}
                       </TableCell>
                       <TableCell>{formatDate(project.createdDate)}</TableCell>
                       <TableCell align="center">
