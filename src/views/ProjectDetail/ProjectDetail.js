@@ -349,7 +349,7 @@ const ProjectDetail = () => {
               <Box sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
                 <Typography variant="subtitle2" color="primary" gutterBottom>
                   <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Mentör
+                  Hakem
                 </Typography>
                 {project?.referee ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
@@ -369,7 +369,7 @@ const ProjectDetail = () => {
                   </Box>
                 ) : (
                   <Typography variant="body1" color="textSecondary">
-                    Henüz mentör atanmamış
+                    Henüz hakem atanmamış
                   </Typography>
                 )}
               </Box>
