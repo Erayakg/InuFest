@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   Box,
@@ -19,7 +19,12 @@ import {
   Avatar,
   Stack,
   Snackbar,
-  Alert
+  Alert,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle
 } from '@mui/material';
 import {
   Description as DescriptionIcon,
@@ -31,11 +36,13 @@ import {
   PictureAsPdf as PdfIcon,
   Event as EventIcon,
   Person as PersonIcon,
-  FileDownload as FileDownloadIcon
+  FileDownload as FileDownloadIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 
 const ProjectDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,6 +52,8 @@ const ProjectDetail = () => {
     message: '',
     severity: 'success'
   });
+  const [openDialog, setOpenDialog] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const fetchProjectDetail = async () => {
@@ -54,6 +63,7 @@ const ProjectDetail = () => {
         
         if (response.data.success) {
           setProject(response.data.data);
+          
         } else {
           setError('Proje bilgileri alınamadı');
         }
@@ -90,7 +100,7 @@ const ProjectDetail = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `proje-${id}.pdf`);
+      link.setAttribute('download', `proje.pdf`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -112,6 +122,64 @@ const ProjectDetail = () => {
       });
     } finally {
       setDownloadLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`/v1/project/student/delete/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      setSnackbar({
+        open: true,
+        message: 'Proje başarıyla silindi',
+        severity: 'success'
+      });
+
+      // Kısa bir süre bekleyip ana sayfaya yönlendir
+      setTimeout(() => {
+        navigate('/projects');
+      }, 1500);
+
+    } catch (error) {
+      console.error('Proje silme hatası:', error);
+      setSnackbar({
+        open: true,
+        message: 'Proje silinirken bir hata oluştu',
+        severity: 'error'
+      });
+    } finally {
+      setDeleteLoading(false);
+      setOpenDialog(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return 'Tarih bilgisi yok';
+
+      // ISO formatındaki tarihi parse et
+      const date = new Date(dateString);
+      
+      // Tarihi parçalara ayır
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const seconds = date.getSeconds().toString().padStart(2, '0');
+
+      // Formatlanmış tarihi döndür
+      return `${day}.${month}.${year} - ${hours}:${minutes}:${seconds}`;
+      
+    } catch (error) {
+      console.error('Tarih formatı hatası:', error);
+      return 'Tarih bilgisi yok';
     }
   };
 
@@ -191,7 +259,7 @@ const ProjectDetail = () => {
                         Oluşturulma Tarihi
                       </Typography>
                       <Typography variant="body1">
-                        {new Date(project?.createDate).toLocaleDateString('tr-TR')}
+                        {formatDate(project?.createdDate)}
                       </Typography>
                     </Box>
                   </Box>
@@ -320,28 +388,28 @@ const ProjectDetail = () => {
                 Öğrenciler
               </Typography>
               <Stack spacing={2}>
-                {project?.students && project.students.length > 0 ? (
-                  project.students.map((student) => (
-                    <Box key={student.id || Math.random()} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {project?.members && project.members.length > 0 ? (
+                  project.members.map((member) => (
+                    <Box key={member.id || Math.random()} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        {student.name && student.name.charAt(0).toUpperCase()}
+                        {member.firstName && member.firstName.charAt(0).toUpperCase()}
                       </Avatar>
                       <Box>
                         <Typography variant="body1">
-                          {student.name}
+                          {`${member.firstName} ${member.lastName}`}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                          {student.username}
+                          {member.email}
                         </Typography>
                         <Typography variant="caption" color="textSecondary">
-                          {student.studentNumber}
+                          {member.studentNumber}
                         </Typography>
                       </Box>
                     </Box>
                   ))
                 ) : (
                   <Typography color="textSecondary">
-                    Projede öğrenci bulunmamaktadır
+                    Projede üye bulunmamaktadır
                   </Typography>
                 )}
               </Stack>
@@ -372,8 +440,59 @@ const ProjectDetail = () => {
             </CardContent>
           </Card>
         </Grid>
+
+        {/* En alta silme butonu ekle */}
+        <Grid item xs={12} sx={{ mt: 3 }}>
+          <Paper sx={{ p: 2, bgcolor: '#ffebee' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="h6" color="error">
+                Tehlikeli Bölge
+              </Typography>
+              <Button
+                variant="contained"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => setOpenDialog(true)}
+              >
+                Projeyi Sil
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
       </Grid>
 
+      {/* Silme Onay Dialog'u */}
+      <Dialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+      >
+        <DialogTitle>
+          Projeyi Silmek İstediğinizden Emin misiniz?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Bu işlem geri alınamaz. Proje ve tüm ilişkili veriler kalıcı olarak silinecektir.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setOpenDialog(false)} 
+            disabled={deleteLoading}
+          >
+            İptal
+          </Button>
+          <Button 
+            onClick={handleDelete} 
+            color="error" 
+            variant="contained"
+            disabled={deleteLoading}
+          >
+            {deleteLoading ? 'Siliniyor...' : 'Evet, Sil'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar Bildirimleri */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

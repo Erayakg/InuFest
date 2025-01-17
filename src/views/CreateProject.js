@@ -1,4 +1,3 @@
-import axios from 'axios';
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -9,35 +8,55 @@ import {
   Typography,
   Autocomplete,
   Box,
+  Chip,
   IconButton,
+  CircularProgress,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import { useNavigate } from 'react-router-dom';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import CloseIcon from '@mui/icons-material/Close';
+import axios from 'axios';
 
 const CreateProject = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Form state
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     categoryId: null,
-    StudentId: [],
+    members: [],
     projectFile: null,
   });
 
-  // Options state
   const [categories, setCategories] = useState([]);
-  const [students, setStudents] = useState([]);
-
-  // Kullanıcı seçtiği PDF dosyasına dair hataları göstermek için
   const [fileError, setFileError] = useState(null);
 
-  // Kategorileri yükle
+  // Validasyon için state'ler
+  const [errors, setErrors] = useState({
+    name: '',
+    description: '',
+    categoryId: '',
+    members: '',
+    projectFile: '',
+  });
+
+  // Email validasyonu için regex
+  const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  
+  // Öğrenci numarası validasyonu için regex (örnek: 8 haneli numara)
+  const studentNumberRegex = /^\d{8}$/;
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'error'
+  });
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -52,26 +71,104 @@ const CreateProject = () => {
         console.error('Error fetching categories:', err);
       }
     };
+
     fetchCategories();
   }, []);
 
-  // Öğrencileri yükle
-  useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get('/student/all', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.data.success) {
-          setStudents(response.data.data);
-        }
-      } catch (err) {
-        console.error('Error fetching students:', err);
+  const validateForm = () => {
+    let tempErrors = {};
+    let isValid = true;
+
+    // Proje adı kontrolü
+    if (!formData.name.trim()) {
+      tempErrors.name = 'Proje adı zorunludur';
+      isValid = false;
+    }
+
+    // Açıklama kontrolü
+    if (!formData.description.trim()) {
+      tempErrors.description = 'Proje açıklaması zorunludur';
+      isValid = false;
+    }
+
+    // Kategori kontrolü
+    if (!formData.categoryId) {
+      tempErrors.categoryId = 'Kategori seçimi zorunludur';
+      isValid = false;
+    }
+
+    // PDF dosyası kontrolü - zorunlu
+    if (!formData.projectFile) {
+      tempErrors.projectFile = 'Proje dosyası zorunludur';
+      setSnackbar({
+        open: true,
+        message: 'Lütfen bir PDF dosyası yükleyin',
+        severity: 'warning'
+      });
+      isValid = false;
+    } else if (formData.projectFile.type !== 'application/pdf') {
+      tempErrors.projectFile = 'Sadece PDF dosyası yüklenebilir';
+      setSnackbar({
+        open: true,
+        message: 'Sadece PDF formatında dosya yükleyebilirsiniz',
+        severity: 'error'
+      });
+      isValid = false;
+    }
+
+    setErrors(tempErrors);
+    return isValid;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      setError('Lütfen tüm zorunlu alanları doldurun ve hataları düzeltin');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      const formDataToSend = new FormData();
+
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('categoryId', formData.categoryId);
+      formDataToSend.append('studentId', userId);
+
+      // Üyeleri JSON string olarak gönder
+      if (formData.members && formData.members.length > 0) {
+        formDataToSend.append('members', JSON.stringify(formData.members));
+      } else {
+        formDataToSend.append('members', JSON.stringify([]));
       }
-    };
-    fetchStudents();
-  }, []);
+
+      // Dosya zorunlu olarak ekleniyor
+      formDataToSend.append('projectFile', formData.projectFile);
+
+      const response = await axios.post('/v1/project/student/createProject', formDataToSend, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        navigate('/projects');
+      }
+    } catch (error) {
+      setError(
+        error.response?.data?.message || 'Proje oluşturulurken bir hata oluştu.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,66 +181,22 @@ const CreateProject = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // PDF dosyası kontrolü
-      if (file.type !== 'application/pdf') {
-        setFileError('Lütfen sadece PDF dosyası yükleyin');
-        return;
+      if (file.type === 'application/pdf') {
+        setFormData(prev => ({
+          ...prev,
+          projectFile: file
+        }));
+        setFileError(null);
+      } else {
+        setFileError('Sadece PDF dosyaları kabul edilmektedir.');
+        e.target.value = '';
       }
-      setFormData(prev => ({
-        ...prev,
-        projectFile: file
-      }));
-      setFileError(null);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-  
-    try {
-      const token = localStorage.getItem('token');
-      const formDataToSend = new FormData();
-  
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('categoryId', formData.categoryId);
-  
-      formData.StudentId.forEach((id) => {
-        formDataToSend.append('StudentId', id);
-      });
-      
-      if (formData.projectFile) {
-        console.log('Dosya gönderiliyor:', formData.projectFile);
-        formDataToSend.append('projectFile', formData.projectFile);
-      } else {
-        console.log('Dosya bulunamadı.');
-      }
-      
-     
-      const response = await axios.post('/v1/project/student/createProject', formDataToSend, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-  
-      if (response.data.success) {
-        navigate('/projects');
-      }
-    } catch (error) {
-      setError(
-        error.response?.data?.message || 'Proje oluşturulurken bir hata oluştu. Lütfen tüm alanları kontrol edin.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-  
   return (
     <Grid container spacing={0}>
-      <Grid item xs={12} lg={12}>
+      <Grid item xs={12}>
         <Card>
           <CardContent>
             <Typography variant="h3" mb={3}>
@@ -152,6 +205,7 @@ const CreateProject = () => {
             
             <form onSubmit={handleSubmit}>
               <Grid container spacing={3}>
+                {/* Proje Adı */}
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -160,9 +214,12 @@ const CreateProject = () => {
                     value={formData.name}
                     onChange={handleChange}
                     required
+                    error={!!errors.name}
+                    helperText={errors.name}
                   />
                 </Grid>
 
+                {/* Proje Açıklaması */}
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -173,9 +230,12 @@ const CreateProject = () => {
                     value={formData.description}
                     onChange={handleChange}
                     required
+                    error={!!errors.description}
+                    helperText={errors.description}
                   />
                 </Grid>
 
+                {/* Kategori Seçimi */}
                 <Grid item xs={12}>
                   <Autocomplete
                     options={categories}
@@ -190,79 +250,132 @@ const CreateProject = () => {
                       <TextField
                         {...params}
                         label="Kategori"
-                        error={!formData.categoryId && error}
-                        helperText={!formData.categoryId && error ? 'Kategori seçimi zorunludur' : ''}
+                        required
+                        error={!!errors.categoryId}
+                        helperText={errors.categoryId}
                       />
                     )}
                   />
                 </Grid>
 
+                {/* Proje Üyeleri */}
                 <Grid item xs={12}>
-                  <Autocomplete
-                    multiple
-                    options={students}
-                    getOptionLabel={(option) => `${option.username} (${option.studentNumber})`}
-                    onChange={(_, newValue) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        StudentId: newValue?.map(student => student?.id).filter(Boolean) || []
-                      }));
-                    }}
-                    renderInput={(params) => (
+                  <Typography variant="h6" mb={2}>
+                    Proje Üyeleri
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
                       <TextField
-                        {...params}
-                        label="Öğrenciler"
-                        error={!formData.StudentId?.length && error}
-                        helperText={!formData.StudentId?.length && error ? 'En az bir öğrenci seçilmelidir' : ''}
+                        fullWidth
+                        label="Ad"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
                       />
-                    )}
-                  />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Soyad"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Öğrenci Numarası"
+                        name="studentNumber"
+                        value={formData.studentNumber}
+                        onChange={handleChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="E-posta"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          if (formData.firstName && formData.lastName && formData.studentNumber && formData.email) {
+                            setFormData(prev => ({
+                              ...prev,
+                              members: [...prev.members, {
+                                firstName: formData.firstName,
+                                lastName: formData.lastName,
+                                studentNumber: formData.studentNumber,
+                                email: formData.email
+                              }],
+                              firstName: "",
+                              lastName: "",
+                              studentNumber: "",
+                              email: ""
+                            }));
+                          }
+                        }}
+                        fullWidth
+                      >
+                        Üye Ekle
+                      </Button>
+                    </Grid>
+                  </Grid>
                 </Grid>
 
+                {/* Eklenen Üyeler Listesi */}
+                {formData.members.length > 0 && (
+                  <Grid item xs={12}>
+                    <Typography variant="h6" mb={2}>
+                      Eklenen Üyeler
+                    </Typography>
+                    {formData.members.map((member, index) => (
+                      <Chip
+                        key={index}
+                        label={`${member.firstName} ${member.lastName} (${member.studentNumber})`}
+                        onDelete={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            members: prev.members.filter((_, i) => i !== index)
+                          }));
+                        }}
+                        sx={{ m: 0.5 }}
+                      />
+                    ))}
+                  </Grid>
+                )}
+
+                {/* Dosya Yükleme */}
                 <Grid item xs={12}>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={handleFileChange}
-                    style={{ display: 'none' }}
-                    id="project-file-input"
-                  />
-                  <label htmlFor="project-file-input">
-                    <Button
-                      variant="outlined"
-                      component="span"
-                      fullWidth
-                      startIcon={<AttachFileIcon />}
-                      sx={{ mt: 2 }}
-                    >
-                      PDF Dosyası Yükle
-                    </Button>
-                  </label>
-                  
-                  {formData.projectFile && (
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      mt: 2,
-                      p: 2,
-                      bgcolor: '#f5f5f5',
-                      borderRadius: 1
-                    }}>
-                      <PictureAsPdfIcon sx={{ mr: 1, color: 'primary.main' }} />
-                      <Typography variant="body2" sx={{ flex: 1 }}>
-                        {formData.projectFile.name}
-                      </Typography>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => setFormData(prev => ({ ...prev, projectFile: null }))}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    startIcon={<AttachFileIcon />}
+                    error={!!errors.projectFile}
+                  >
+                    PDF Dosyası Yükle (Zorunlu)
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={handleFileChange}
+                      style={{ display: 'none' }}
+                      required
+                    />
+                  </Button>
+                  {errors.projectFile && (
+                    <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                      {errors.projectFile}
+                    </Typography>
                   )}
-                  
                   {fileError && (
-                    <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                    <Typography color="error" variant="body2" sx={{ mt: 1 }}>
                       {fileError}
                     </Typography>
                   )}
@@ -270,7 +383,7 @@ const CreateProject = () => {
 
                 {error && (
                   <Grid item xs={12}>
-                    <Typography color="error" align="center" sx={{ mt: 2 }}>
+                    <Typography color="error" align="center">
                       {error}
                     </Typography>
                   </Grid>
@@ -282,10 +395,9 @@ const CreateProject = () => {
                     variant="contained"
                     color="primary"
                     fullWidth
-                    size="large"
                     disabled={loading}
                   >
-                    {loading ? 'Kaydediliyor...' : 'Projeyi Kaydet'}
+                    {loading ? <CircularProgress size={24} /> : 'Projeyi Oluştur'}
                   </Button>
                 </Grid>
               </Grid>
@@ -293,6 +405,22 @@ const CreateProject = () => {
           </CardContent>
         </Card>
       </Grid>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Grid>
   );
 };
