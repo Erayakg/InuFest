@@ -17,7 +17,9 @@ import {
   CircularProgress,
   Paper,
   Avatar,
-  Stack
+  Stack,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
   Description as DescriptionIcon,
@@ -29,6 +31,7 @@ import {
   PictureAsPdf as PdfIcon,
   Event as EventIcon,
   Person as PersonIcon,
+  FileDownload as FileDownloadIcon
 } from '@mui/icons-material';
 
 const ProjectDetail = () => {
@@ -36,6 +39,12 @@ const ProjectDetail = () => {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [downloadLoading, setDownloadLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   useEffect(() => {
     const fetchProjectDetail = async () => {
@@ -58,6 +67,53 @@ const ProjectDetail = () => {
 
     fetchProjectDetail();
   }, [id]);
+
+  const handleDownload = async () => {
+    setDownloadLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios({
+        method: 'GET',
+        url: `/v1/project/${id}/downloadt`,
+        responseType: 'blob',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/pdf'
+        }
+      });
+
+      if (response.status === 204) {
+        throw new Error('Dosya bulunamadı');
+      }
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `proje-${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setSnackbar({
+        open: true,
+        message: 'Dosya başarıyla indirildi',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Dosya indirme hatası:', error);
+      setSnackbar({
+        open: true,
+        message: error.message === 'Dosya bulunamadı' 
+          ? 'Dosya bulunamadı' 
+          : 'Dosya indirilirken bir hata oluştu',
+        severity: 'error'
+      });
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -202,13 +258,14 @@ const ProjectDetail = () => {
                       primary="Proje Dosyası"
                       secondary={
                         <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<AttachFileIcon />}
-                          onClick={() => window.open(project.projectFile, '_blank')}
+                          variant="contained"
+                          color="primary"
+                          startIcon={downloadLoading ? <CircularProgress size={20} color="inherit" /> : <FileDownloadIcon />}
+                          onClick={handleDownload}
+                          disabled={downloadLoading}
                           sx={{ mt: 1 }}
                         >
-                          Dosyayı Görüntüle
+                          {downloadLoading ? 'İndiriliyor...' : 'Dosyayı İndir'}
                         </Button>
                       }
                     />
@@ -292,8 +349,45 @@ const ProjectDetail = () => {
           </Card>
         </Grid>
 
-        {/* ... PDF Dosyası Kartı aynı ... */}
+        {/* Proje Dosyası İndirme Kartı */}
+        <Grid item xs={12}>
+          <Card sx={{ mt: 3 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <PdfIcon color="primary" fontSize="large" />
+                <Typography variant="h6" sx={{ flex: 1 }}>
+                  Proje Dosyası
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={downloadLoading ? <CircularProgress size={20} color="inherit" /> : <FileDownloadIcon />}
+                  onClick={handleDownload}
+                  disabled={downloadLoading}
+                  size="large"
+                >
+                  {downloadLoading ? 'İndiriliyor...' : 'Projeyi İndir'}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
