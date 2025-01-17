@@ -106,17 +106,14 @@ const CreateProject = () => {
       const token = localStorage.getItem('token');
       const formDataToSend = new FormData();
   
-      // Form verilerini ekle
       formDataToSend.append('name', formData.name);
       formDataToSend.append('description', formData.description);
       formDataToSend.append('categoryId', formData.categoryId);
   
-      // StudentId array'ini formData'ya ekle
       formData.StudentId.forEach((id) => {
         formDataToSend.append('StudentId', id);
       });
       
-      // PDF dosyasını ekle, dosyanın varlığını kontrol et
       if (formData.projectFile) {
         console.log('Dosya gönderiliyor:', formData.projectFile);
         formDataToSend.append('projectFile', formData.projectFile);
@@ -124,27 +121,18 @@ const CreateProject = () => {
         console.log('Dosya bulunamadı.');
       }
       
-      // FormData içeriğini kontrol et
-      for (const [key, value] of formDataToSend.entries()) {
-        console.log(`${key}:`, value);
-      }
-  
-      // Axios isteği
+     
       const response = await axios.post('/v1/project/student/createProject', formDataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
-          // 'Content-Type': 'multipart/form-data' // Axios otomatik ayarlar, eklemeyin
         },
       });
   
-      // Başarılı yanıt
       if (response.data.success) {
-        console.log('Proje başarıyla oluşturuldu:', response.data);
         navigate('/projects');
       }
     } catch (error) {
-      console.error('Proje oluşturma hatası:', error);
       setError(
         error.response?.data?.message || 'Proje oluşturulurken bir hata oluştu. Lütfen tüm alanları kontrol edin.'
       );
