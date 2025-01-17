@@ -17,7 +17,14 @@ import {
   useMediaQuery,
   CircularProgress,
   Grid,
-  Container
+  Container,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Pagination,
+  Stack
 } from "@mui/material";
 import { useTheme } from '@mui/material/styles';
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -35,13 +42,17 @@ const ProjectList = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [mentorFilter, setMentorFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(10);
 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         const token = localStorage.getItem('token');
         
-
         const response = await axios.get(`/v1/project`, {
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -71,6 +82,50 @@ const ProjectList = () => {
     fetchProjects();
   }, []);
 
+  // Filter projects based on search query and mentor status
+  const filteredProjects = projects
+    .filter(project =>
+      project.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .filter(project => {
+      if (mentorFilter === "all") return true;
+      if (mentorFilter === "assigned") return !!project.refereeUsername;
+      if (mentorFilter === "unassigned") return !project.refereeUsername;
+      return true;
+    });
+
+  // Sort projects by creation date
+  const sortedProjects = [...filteredProjects].sort((a, b) => {
+    const dateA = new Date(a.createdDate).getTime();
+    const dateB = new Date(b.createdDate).getTime();
+    return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+  });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(sortedProjects.length / rowsPerPage);
+  const paginatedProjects = sortedProjects.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+    setPage(1);
+  };
+
+  const handleSortChange = (event) => {
+    setSortOrder(event.target.value);
+  };
+
+  const handleMentorFilterChange = (event) => {
+    setMentorFilter(event.target.value);
+    setPage(1);
+  };
+
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
   const handleView = (id) => {
     navigate(`/projectDetails/${id}`);
   };
@@ -93,6 +148,12 @@ const ProjectList = () => {
     }
   };
 
+  const truncateText = (text, maxLength = 50) => {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
   const formatMembers = (members) => {
     if (!members || members.length === 0) return 'Üye Yok';
     return members.map(member => 
@@ -104,6 +165,66 @@ const ProjectList = () => {
     if (!student) return 'Kaptan bilgisi yok';
     return `${student.username} (${student.studentNumber})`;
   };
+
+  const renderControls = () => (
+    <Box sx={{ 
+      mb: 3, 
+      display: 'flex', 
+      gap: 2, 
+      flexWrap: 'wrap',
+      alignItems: 'center'
+    }}>
+      <TextField
+        label="Proje Ara"
+        variant="outlined"
+        size="small"
+        value={searchQuery}
+        onChange={handleSearchChange}
+        sx={{ minWidth: 200 }}
+      />
+      <FormControl size="small" sx={{ minWidth: 200 }}>
+        <InputLabel>Sıralama</InputLabel>
+        <Select
+          value={sortOrder}
+          label="Sıralama"
+          onChange={handleSortChange}
+        >
+          <MenuItem value="desc">En Yeni</MenuItem>
+          <MenuItem value="asc">En Eski</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl size="small" sx={{ minWidth: 200 }}>
+        <InputLabel>Mentor Durumu</InputLabel>
+        <Select
+          value={mentorFilter}
+          label="Mentor Durumu"
+          onChange={handleMentorFilterChange}
+        >
+          <MenuItem value="all">Tümü</MenuItem>
+          <MenuItem value="assigned">Mentor Atanmış</MenuItem>
+          <MenuItem value="unassigned">Mentor Atanmamış</MenuItem>
+        </Select>
+      </FormControl>
+      <Box sx={{ ml: 'auto' }}>
+        <Typography variant="body2" color="textSecondary">
+          Toplam: {filteredProjects.length} proje
+        </Typography>
+      </Box>
+    </Box>
+  );
+
+  const renderPagination = () => (
+    <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+      <Pagination
+        count={totalPages}
+        page={page}
+        onChange={handlePageChange}
+        color="primary"
+        showFirstButton
+        showLastButton
+      />
+    </Box>
+  );
 
   if (loading) {
     return (
@@ -145,9 +266,11 @@ const ProjectList = () => {
             Projeler
           </Typography>
           
+          {renderControls()}
+          
           {isMobile ? (
             <Grid container spacing={2}>
-              {projects.map((project) => (
+              {paginatedProjects.map((project) => (
                 <Grid item xs={12} key={project.id}>
                   <Card variant="outlined" sx={{ p: 2 }}>
                     <Box sx={{ mb: 2 }}>
@@ -155,8 +278,10 @@ const ProjectList = () => {
                         {project.name}
                       </Typography>
                       <Typography variant="body2" color="textSecondary" gutterBottom>
-                        {project.description}
-                      </Typography>
+    <Tooltip title={project.description || ''}>
+      <span>{truncateText(project.description)}</span>
+    </Tooltip>
+  </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <CategoryIcon color="primary" fontSize="small" />
                         <Typography variant="body2" color="textSecondary">
@@ -178,14 +303,12 @@ const ProjectList = () => {
                           Üyeler: {formatMembers(project.members)}
                         </Typography>
                       </Box>
-                      {project.refereeUsername && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <SupervisorAccountIcon color="primary" fontSize="small" />
-                          <Typography variant="body2" color="textSecondary">
-                            Danışman: {project.refereeUsername}
-                          </Typography>
-                        </Box>
-                      )}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <SupervisorAccountIcon color="primary" fontSize="small" />
+                        <Typography variant="body2" color="textSecondary">
+                          Danışman: {project.refereeUsername || 'Atanmamış'}
+                        </Typography>
+                      </Box>
                     </Box>
                     <Box sx={{ 
                       display: 'flex', 
@@ -226,10 +349,16 @@ const ProjectList = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {projects.map((project) => (
+                  {paginatedProjects.map((project) => (
                     <TableRow key={project.id} hover>
                       <TableCell>{project.name}</TableCell>
-                      <TableCell>{project.description}</TableCell>
+                      <TableCell>
+    <Tooltip title={project.description || ''}>
+      <Typography>
+        {truncateText(project.description)}
+      </Typography>
+    </Tooltip>
+  </TableCell>
                       <TableCell>
                         <Chip 
                           label={project.category?.name || 'Kategori Yok'} 
@@ -250,7 +379,14 @@ const ProjectList = () => {
                         </Box>
                       </TableCell>
                       <TableCell>{formatMembers(project.members)}</TableCell>
-                      <TableCell>{project.refereeUsername || 'Atanmamış'}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={project.refereeUsername || 'Atanmamış'}
+                          size="small"
+                          color={project.refereeUsername ? "success" : "default"}
+                          variant="outlined"
+                        />
+                      </TableCell>
                       <TableCell>{formatDate(project.createdDate)}</TableCell>
                       <TableCell align="center">
                         <Tooltip title="Detayları Görüntüle">
@@ -269,6 +405,9 @@ const ProjectList = () => {
               </Table>
             </TableContainer>
           )}
+          
+          {renderPagination()}
+          
         </CardContent>
       </Card>
     </Container>
