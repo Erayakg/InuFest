@@ -9,37 +9,30 @@ import ProjectDetail from "../views/ProjectDetail/ProjectDetail";
 import Profile from "../views/Profile/Profile";
 import AdminPage from "../views/pages/AdminPage.js";
 import VerifyEmail from "../views/auth/VerifyEmail";
+import PrivateRoute from '../components/PrivateRoute';
+
 /****Layouts*****/
 const FullLayout = lazy(() => import("../layouts/FullLayout/FullLayout.js"));
 /****End Layouts*****/
 
 /*****Pages******/
 const Dashboard1 = lazy(() => import("../views/dashboards/Dashboard1.js"));
-
-/*****Tables******/
 const BasicTable = lazy(() => import("../views/tables/BasicTable.js"));
-
-// form elements
-const ExAutoComplete = lazy(() =>
-  import("../views/FormElements/ExAutoComplete.js")
-);
+const ExAutoComplete = lazy(() => import("../views/FormElements/ExAutoComplete.js"));
 const ExButton = lazy(() => import("../views/FormElements/ExButton.js"));
 const ExCheckbox = lazy(() => import("../views/FormElements/ExCheckbox.js"));
 const ExRadio = lazy(() => import("../views/FormElements/ExRadio.js"));
 const ExSlider = lazy(() => import("../views/FormElements/ExSlider.js"));
 const ExSwitch = lazy(() => import("../views/FormElements/ExSwitch.js"));
-// form layouts
 const FormLayouts = lazy(() => import("../views/FormLayouts/FormLayouts.js"));
-
-/*****Routes******/
 
 const ThemeRoutes = [
   {
     path: "/",
-    element: <FullLayout />,
+    element: <PrivateRoute><FullLayout /></PrivateRoute>,
     children: [
-      { path: "/", element: <Navigate to="dashboards/dashboard1" /> },
-      { path: "dashboards/dashboard1", exact: true, element: <Dashboard1 /> },
+      { path: "/", element: <Navigate to="/profile" /> },
+      { path: "dashboards/dashboard1", element: <Dashboard1 /> },
       { path: "tables/basic-table", element: <BasicTable /> },
       { path: "/create-project", element: <CreateProject /> },
       { path: "/form-layouts/form-layouts", element: <FormLayouts /> },
@@ -51,14 +44,14 @@ const ThemeRoutes = [
       { path: "/form-elements/switch", element: <ExSwitch /> },
       { path: "/projects", element: <ProjectList /> },
       { path: "/projects/edit/:id", element: <ProjectEdit /> },
-      {path: "/projects/detail/:id", element: <ProjectDetail />},
-      {path: "/profile", element: <Profile />},
-      {path: "/admin", element: <AdminPage />},
-      {path: "/verify-email", element: <VerifyEmail />},
-      {path: "/projectDetails/:id", element: <ProjectDetail />},
-      {path: "/admin/projects", element: <ProjectList />},
+      { path: "/projects/detail/:id", element: <ProjectDetail /> },
+      { path: "/profile", element: <Profile /> },
+      { path: "/admin", element: <AdminPage /> },
+      { path: "/projectDetails/:id", element: <ProjectDetail /> },
+      { path: "/admin/projects", element: <ProjectList /> },
     ],
   },
+  // Public routes - giriş yapmadan erişilebilen rotalar
   {
     path: "/register",
     element: <Register />,
@@ -67,6 +60,10 @@ const ThemeRoutes = [
     path: "/login",
     element: <Login />,
   },
+  {
+    path: "/verify-email",
+    element: <VerifyEmail />,
+  }
 ];
 
 export default ThemeRoutes;

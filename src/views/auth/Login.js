@@ -46,6 +46,17 @@ const Login = () => {
                 mail: formData.mail,
                 password: formData.password,
             });
+        navigate("/profile");
+      }
+    } catch (err) {
+      if (err.response?.status === 403) {
+        setOpen(true); // Pop-up'u aç
+      } else {
+        setError(err.response?.data?.message || "Mail adresi veya şifre yanlış.");
+      }
+    }
+  };
+
 
             if (response.status === 200) {
                 localStorage.setItem("token", response.data.accessToken);
