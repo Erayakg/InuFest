@@ -48,6 +48,8 @@ const RefereeProjectList = () => {
   const [rowsPerPage] = useState(10);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [assessmentModalOpen, setAssessmentModalOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [projectReferees, setProjectReferees] = useState([]);
 
   const fetchRefereeProjects = async () => {
     try {
@@ -126,13 +128,53 @@ const RefereeProjectList = () => {
     return date.toLocaleString('tr-TR').replace(',', ' -');
   };
 
+  const fetchProjectReferees = async () => {
+    try {
+      const refereeId = localStorage.getItem('userId');
+      if (!refereeId) return;
+
+      const response = await axios.get('/v1/project-referees/by-project');
+      
+      const refereeData = response.data.map(item => ({
+        id: item.id,
+        projectId: item.projectId,
+        refereeId: item.refereeId,
+        assessments: item.assessments
+      }));
+      
+      setProjectReferees(refereeData || []);
+      
+    } catch (error) {
+      console.error('Referee projeleri alınamadı:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjectReferees();
+  }, []);
+
   const handleAssessment = (projectId) => {
-    setSelectedProjectId(projectId);
+    console.log('Project ID:', projectId);
+    console.log('Project Referees:', projectReferees);
+    
+    const projectReferee = projectReferees.find(pr => pr.projectId === projectId);
+    console.log('Found Project Referee:', projectReferee);
+    
+    if (!projectReferee) {
+      console.error('Proje referee bilgisi bulunamadı:', projectId);
+      return;
+    }
+
+    setSelectedProject({
+      id: projectReferee.id,
+      assessment: projectReferee.assessments?.[0]
+    });
     setAssessmentModalOpen(true);
   };
 
   const handleAssessmentSuccess = () => {
     fetchRefereeProjects();
+    fetchProjectReferees();
   };
 
   const renderMobileView = () => (
@@ -434,12 +476,15 @@ const RefereeProjectList = () => {
       </Card>
       <AssessmentModal
         open={assessmentModalOpen}
-        handleClose={() => {
+        handleClose={(success) => {
           setAssessmentModalOpen(false);
-          setSelectedProjectId(null);
+          setSelectedProject(null);
+          if (success) {
+            handleAssessmentSuccess();
+          }
         }}
-        projectId={selectedProjectId}
-        onSuccess={handleAssessmentSuccess}
+        projectId={selectedProject?.id}
+        existingAssessment={selectedProject?.assessment}
       />
     </Container>
   );
