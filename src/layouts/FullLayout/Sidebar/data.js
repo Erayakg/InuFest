@@ -15,6 +15,18 @@ const Menuitems = [
     roles: ["ROLE_ADMIN"]
   },
   {
+    title: "Tüm Projeler",
+    icon: ListAltIcon,
+    href: "/referee/projects",
+    roles: ["ROLE_REFEREE"]
+  },
+  {
+    title: "Hakem Profili",
+    icon: ListAltIcon,
+    href: "/referee",
+    roles: ["ROLE_REFEREE"]
+  },
+  {
     
     title: "Projelerim",
     icon: DashboardOutlinedIcon,
