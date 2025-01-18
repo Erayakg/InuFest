@@ -44,6 +44,7 @@ const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
+  const [projectReferees, setProjectReferees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
@@ -57,18 +58,23 @@ const ProjectDetail = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
   useEffect(() => {
-    const fetchProjectDetail = async () => {
+    const fetchProjectData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`/v1/project/student/getProject/${id}`);
+        const [projectResponse, refereesResponse] = await Promise.all([
+          axios.get(`/v1/project/student/getProject/${id}`),
+          axios.get(`/v1/project-referees/by-project/${id}`)
+        ]);
         
-        if (response.data.success) {
-          setProject(response.data.data);
-          console.log(response.data.data);
-          
+        if (projectResponse.data.success) {
+          setProject(projectResponse.data.data);
         } else {
           setError('Proje bilgileri alınamadı');
         }
+
+        // Hakem bilgilerini set et
+        setProjectReferees(refereesResponse.data);
+
       } catch (err) {
         setError('Proje yüklenirken bir hata oluştu');
         console.error('Proje detay hatası:', err);
@@ -77,7 +83,7 @@ const ProjectDetail = () => {
       }
     };
 
-    fetchProjectDetail();
+    fetchProjectData();
   }, [id]);
 
   const handleDownload = async () => {
@@ -184,6 +190,146 @@ const ProjectDetail = () => {
     }
   };
 
+  // Puana göre renk belirleme fonksiyonu
+  const getScoreColor = (score) => {
+    if (score >= 90) return '#2e7d32'; // Yeşil
+    if (score >= 70) return '#1976d2'; // Mavi
+    if (score >= 50) return '#ed6c02'; // Turuncu
+    return '#d32f2f'; // Kırmızı
+  };
+
+  // Ortalama puan hesaplama
+  const calculateAverageScore = (referees) => {
+    const validAssessments = referees.filter(ref => ref.assessment?.score);
+    if (validAssessments.length === 0) return null;
+    
+    const totalScore = validAssessments.reduce((sum, ref) => sum + ref.assessment.score, 0);
+    return (totalScore / validAssessments.length).toFixed(2);
+  };
+
+  // Ortalama puanı hesapla
+  const averageScore = calculateAverageScore(projectReferees);
+
+  const RefereeCard = () => {
+    const averageScore = calculateAverageScore(projectReferees);
+
+    // Puana göre renk belirleme fonksiyonu
+    const getScoreColor = (score) => {
+      if (score >= 90) return '#2e7d32'; // Yeşil
+      if (score >= 70) return '#1976d2'; // Mavi
+      if (score >= 50) return '#ed6c02'; // Turuncu
+      return '#d32f2f'; // Kırmızı
+    };
+
+    return (
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PersonIcon color="primary" />
+            Hakemler ve Değerlendirmeler
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          
+          {averageScore && (
+            <Box 
+              sx={{ 
+                mb: 3, 
+                p: 3,
+                borderRadius: 2,
+                background: (theme) => `linear-gradient(45deg, ${getScoreColor(averageScore)} 0%, ${theme.palette.background.paper} 200%)`,
+                boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <Typography variant="subtitle1" color="white">
+                Ortalama Puan
+              </Typography>
+              <Typography 
+                variant="h3" 
+                sx={{ 
+                  color: 'white',
+                  fontWeight: 'bold',
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+                }}
+              >
+                {averageScore}
+              </Typography>
+            </Box>
+          )}
+          
+          {projectReferees && projectReferees.length > 0 ? (
+            <Stack spacing={2}>
+              {projectReferees.map((referee) => (
+                <Paper key={referee.id} elevation={1} sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                    <Avatar sx={{ bgcolor: 'primary.main' }}>
+                      {referee.refereeName.charAt(0)}
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="subtitle1" gutterBottom>
+                        {referee.refereeName}
+                      </Typography>
+                      
+                      {referee.assessment ? (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="body2" color="textSecondary" gutterBottom>
+                            <strong>Puan:</strong> {referee.assessment.score}
+                          </Typography>
+                          {referee.assessment.description && (
+                            <>
+                              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                                <strong>Değerlendirme:</strong>
+                              </Typography>
+                              <Paper 
+                                variant="outlined" 
+                                sx={{ 
+                                  p: 2, 
+                                  mt: 1, 
+                                  bgcolor: 'grey.50',
+                                  borderRadius: 1,
+                                  maxHeight: '300px',
+                                  overflowY: 'auto'
+                                }}
+                              >
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word'
+                                  }}
+                                >
+                                  {referee.assessment.description}
+                                </Typography>
+                              </Paper>
+                            </>
+                          )}
+                        </Box>
+                      ) : (
+                        <Chip
+                          label="Değerlendirme Bekliyor"
+                          color="warning"
+                          size="small"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+                  </Box>
+                </Paper>
+              ))}
+            </Stack>
+          ) : (
+            <Typography color="textSecondary">
+              Henüz hakem atanmamış
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
@@ -211,7 +357,8 @@ const ProjectDetail = () => {
       <Grid container spacing={3}>
         {/* Proje Detayları - Sol Taraf */}
         <Grid item xs={12} md={8}>
-          <Card>
+          {/* Proje Detayları Kartı */}
+          <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
                 Proje Detayları
@@ -278,30 +425,141 @@ const ProjectDetail = () => {
                   />
                 </ListItem>
               </List>
+
+              {/* Tehlikeli Bölge */}
+              <Box sx={{ 
+                mt: 3, 
+                p: 2, 
+                bgcolor: '#ffebee', 
+                borderRadius: 1,
+                border: '1px solid #ef5350'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography variant="h6" color="error">
+                    Tehlikeli Bölge
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => setOpenDeleteDialog(true)}
+                  >
+                    Projeyi Sil
+                  </Button>
+                </Box>
+              </Box>
             </CardContent>
           </Card>
 
-          {/* Tehlikeli Bölge Kartı */}
-          <Card sx={{ mt: 3, bgcolor: '#ffebee' }}>
+          {/* Hakemler ve Değerlendirmeler - Alt alta düzen */}
+          <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="h6" color="error">
-                  Tehlikeli Bölge
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="error"
-                  startIcon={<DeleteIcon />}
-                  onClick={() => setOpenDeleteDialog(true)}
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonIcon color="primary" />
+                Hakemler ve Değerlendirmeler
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              {averageScore && (
+                <Box 
+                  sx={{ 
+                    mb: 3, 
+                    p: 3,
+                    borderRadius: 2,
+                    background: (theme) => `linear-gradient(45deg, ${getScoreColor(averageScore)} 0%, ${theme.palette.background.paper} 200%)`,
+                    boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 1
+                  }}
                 >
-                  Projeyi Sil
-                </Button>
-              </Box>
+                  <Typography variant="subtitle1" color="white">
+                    Ortalama Puan
+                  </Typography>
+                  <Typography 
+                    variant="h3" 
+                    sx={{ 
+                      color: 'white',
+                      fontWeight: 'bold',
+                      textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    {averageScore}
+                  </Typography>
+                </Box>
+              )}
+
+              <Stack spacing={2}>
+                {projectReferees && projectReferees.length > 0 ? (
+                  projectReferees.map((referee) => (
+                    <Paper key={referee.id} elevation={1} sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                        <Avatar sx={{ bgcolor: 'primary.main' }}>
+                          {referee.refereeName.charAt(0)}
+                        </Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" gutterBottom>
+                            {referee.refereeName}
+                          </Typography>
+                          
+                          {referee.assessment ? (
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="body2" color="textSecondary" gutterBottom>
+                                <strong>Puan:</strong> {referee.assessment.score}
+                              </Typography>
+                              {referee.assessment.description && (
+                                <>
+                                  <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                                    <strong>Değerlendirme:</strong>
+                                  </Typography>
+                                  <Paper 
+                                    variant="outlined" 
+                                    sx={{ 
+                                      p: 2, 
+                                      mt: 1, 
+                                      bgcolor: 'grey.50',
+                                      borderRadius: 1,
+                                      maxHeight: '300px',
+                                      overflowY: 'auto'
+                                    }}
+                                  >
+                                    <Typography 
+                                      variant="body2" 
+                                      sx={{ 
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word'
+                                      }}
+                                    >
+                                      {referee.assessment.description}
+                                    </Typography>
+                                  </Paper>
+                                </>
+                              )}
+                            </Box>
+                          ) : (
+                            <Chip
+                              label="Değerlendirme Bekliyor"
+                              color="warning"
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    </Paper>
+                  ))
+                ) : (
+                  <Typography color="textSecondary">
+                    Henüz hakem atanmamış
+                  </Typography>
+                )}
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Proje Ekibi - Sağ Taraf */}
+        {/* Sağ Taraf - Takım Bilgileri */}
         <Grid item xs={12} md={4}>
           {/* Takım Kaptanı Kartı */}
           <Card sx={{ mb: 3 }}>
@@ -336,40 +594,8 @@ const ProjectDetail = () => {
             </CardContent>
           </Card>
 
-          {/* Hakem Kartı */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <PersonIcon color="primary" />
-                Hakemler
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              
-              {project?.refereeUsernameList && project.refereeUsernameList.length > 0 ? (
-                <Stack spacing={2}>
-                  {project.refereeUsernameList.map((referee, index) => (
-                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        {referee.charAt(0)}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="subtitle1">
-                          {referee}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ))}
-                </Stack>
-              ) : (
-                <Typography color="textSecondary">
-                  Henüz hakem atanmamış
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Takım Üyeleri Kartı */}
-          <Card>
+          <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <GroupIcon color="primary" />

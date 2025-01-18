@@ -17,10 +17,13 @@ import {
   useTheme,
   useMediaQuery,
   CircularProgress,
+  Stack,
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
+import PersonIcon from "@mui/icons-material/Person";
 
 const ProjectList = () => {
   const theme = useTheme();
@@ -90,35 +93,62 @@ const ProjectList = () => {
   };
 
   const formatReferees = (refereeList) => {
-    if (!refereeList || refereeList.length === 0) return 'Danışman Atanmamış';
+    if (!refereeList || refereeList.length === 0) {
+      return (
+        <Chip
+          label="Danışman Atanmamış"
+          size="small"
+          color="warning"
+          variant="outlined"
+          sx={{ opacity: 0.7 }}
+        />
+      );
+    }
+    
     return (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+      <Stack spacing={1}>
         {refereeList.map((referee, index) => (
           <Chip
             key={index}
             label={referee}
             size="small"
+            color="success"
             variant="outlined"
+            icon={<PersonIcon />}
+            sx={{
+              maxWidth: '100%',
+              '& .MuiChip-label': {
+                whiteSpace: 'normal',
+                overflow: 'visible',
+                textOverflow: 'clip',
+                display: 'block'
+              },
+              height: 'auto',
+              '& .MuiChip-icon': {
+                marginLeft: '8px'
+              },
+              py: 0.5
+            }}
           />
         ))}
-      </Box>
+      </Stack>
     );
   };
 
   const formatMembers = (members) => {
     if (!members || members.length === 0) return 'Üye Yok';
     return (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+      <Stack spacing={1}>
         {members.map(member => (
           <Chip
             key={member.studentNumber}
-            label={`${member.firstName} ${member.lastName}`}
+            label={`${member.firstName} ${member.lastName} (${member.studentNumber})`}
             size="small"
             variant="outlined"
-            title={`${member.firstName} ${member.lastName} (${member.studentNumber})`}
+            sx={{ maxWidth: '100%' }}
           />
         ))}
-      </Box>
+      </Stack>
     );
   };
 
@@ -150,16 +180,39 @@ const ProjectList = () => {
 
   return (
     <Box>
-      <Card variant="outlined">
+      <Card variant="outlined" sx={{ 
+        mb: 3,
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          boxShadow: (theme) => theme.shadows[3],
+          transform: 'translateY(-2px)'
+        }
+      }}>
         <CardContent>
-          <Typography variant="h5" mb={3}>
+          <Typography variant="h5" mb={3} sx={{ 
+            color: 'primary.main',
+            fontWeight: 'medium',
+            borderBottom: '2px solid',
+            borderColor: 'primary.light',
+            pb: 1
+          }}>
             Projeler
           </Typography>
           
           {isMobile ? (
             <Box>
               {projectsArray.map((project) => (
-                <Card key={project.id} sx={{ mb: 2, p: 2 }}>
+                <Card key={project.id} sx={{ 
+                  mb: 2, 
+                  p: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: (theme) => theme.shadows[3],
+                    transform: 'translateY(-2px)'
+                  },
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="h6" gutterBottom>
                       {project.name}
@@ -178,11 +231,25 @@ const ProjectList = () => {
                       </Typography>
                       {formatMembers(project.members)}
                     </Box>
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="body2" color="textSecondary" gutterBottom>
-                        Danışmanlar:
-                      </Typography>
-                      {formatReferees(project.refereeUsernameList)}
+                    <Box sx={{ mt: 2 }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1, 
+                        mb: 1 
+                      }}>
+                        <SupervisorAccountIcon color="primary" fontSize="small" />
+                        <Typography 
+                          variant="body2" 
+                          color="textSecondary"
+                          sx={{ fontWeight: 'medium' }}
+                        >
+                          Danışmanlar
+                        </Typography>
+                      </Box>
+                      <Box sx={{ pl: 3 }}>
+                        {formatReferees(project.refereeUsernameList)}
+                      </Box>
                     </Box>
                   </Box>
                   
@@ -210,7 +277,7 @@ const ProjectList = () => {
                     <TableCell><strong>Açıklama</strong></TableCell>
                     <TableCell><strong>Kategori</strong></TableCell>
                     <TableCell><strong>Üyeler</strong></TableCell>
-                    <TableCell><strong>Danışmanlar</strong></TableCell>
+                    <TableCell><strong>Hakemler</strong></TableCell>
                     <TableCell><strong>Oluşturulma</strong></TableCell>
                     <TableCell><strong>İşlemler</strong></TableCell>
                   </TableRow>
@@ -234,10 +301,50 @@ const ProjectList = () => {
                           variant="outlined"
                         />
                       </TableCell>
-                      <TableCell sx={{ minWidth: '200px' }}>
+                      <TableCell sx={{ 
+                        minWidth: '200px',
+                        '& .MuiStack-root': {
+                          maxHeight: '200px',
+                          overflowY: 'auto',
+                          '&::-webkit-scrollbar': {
+                            width: '8px'
+                          },
+                          '&::-webkit-scrollbar-track': {
+                            background: '#f1f1f1',
+                            borderRadius: '4px'
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            background: '#888',
+                            borderRadius: '4px',
+                            '&:hover': {
+                              background: '#555'
+                            }
+                          }
+                        }
+                      }}>
                         {formatMembers(project.members)}
                       </TableCell>
-                      <TableCell sx={{ minWidth: '200px' }}>
+                      <TableCell sx={{ 
+                        minWidth: '200px',
+                        '& .MuiStack-root': {
+                          maxHeight: '200px',
+                          overflowY: 'auto',
+                          '&::-webkit-scrollbar': {
+                            width: '8px'
+                          },
+                          '&::-webkit-scrollbar-track': {
+                            background: '#f1f1f1',
+                            borderRadius: '4px'
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            background: '#888',
+                            borderRadius: '4px',
+                            '&:hover': {
+                              background: '#555'
+                            }
+                          }
+                        }
+                      }}>
                         {formatReferees(project.refereeUsernameList)}
                       </TableCell>
                       <TableCell>
