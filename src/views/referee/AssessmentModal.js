@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -7,18 +7,59 @@ import {
   Button,
   TextField,
   Box,
-  Slider,
   Typography,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel
 } from '@mui/material';
 import axios from 'axios';
 
 const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
-  const [score, setScore] = useState(70);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const [originality, setOriginality] = useState('AVERAGE');
+  const [innovation, setInnovation] = useState('AVERAGE');
+  const [technicalProficiency, setTechnicalProficiency] = useState('AVERAGE');
+  const [applicability, setApplicability] = useState('AVERAGE');
+  const [designFunctionality, setDesignFunctionality] = useState('AVERAGE');
+  const [impactPotential, setImpactPotential] = useState('AVERAGE');
+  const [presentationCommunication, setPresentationCommunication] = useState('AVERAGE');
+  const [sustainability, setSustainability] = useState('AVERAGE');
+
+  const ratingValues = {
+    VERY_BAD: 0,
+    BAD: 25,
+    AVERAGE: 50,
+    GOOD: 75,
+    VERY_GOOD: 100
+  };
+
+  const calculateAverageScore = () => {
+    const totalScore = [
+      originality,
+      innovation,
+      technicalProficiency,
+      applicability,
+      designFunctionality,
+      impactPotential,
+      presentationCommunication,
+      sustainability
+    ].reduce((acc, criterion) => acc + ratingValues[criterion], 0);
+
+    return totalScore / 8;
+  };
+
+  const [score, setScore] = useState(calculateAverageScore());
+
+  useEffect(() => {
+    setScore(calculateAverageScore());
+  }, [originality, innovation, technicalProficiency, applicability, designFunctionality, impactPotential, presentationCommunication, sustainability]);
 
   const handleSubmit = async () => {
     if (!description.trim()) {
@@ -30,15 +71,20 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
     setError(null);
 
     try {
-      await axios.post('/v1/assessments/createAssessment', {
+      await axios.post('/v1/assessments', {
         score,
         description,
-        projectRefereeId: refereeId
+        projectRefereeId: refereeId,
+        originality,
+        innovation,
+        technicalProficiency,
+        applicability,
+        designFunctionality,
+        impactPotential,
+        presentationCommunication,
+        sustainability
       });
-      console.log(score,description,refereeId);
-
-      onSuccess?.();
-      handleClose();
+      handleClose(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Değerlendirme kaydedilirken bir hata oluştu');
     } finally {
@@ -47,41 +93,38 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
   };
 
   const handleCancel = () => {
-    setScore(70);
     setDescription('');
     setError(null);
     handleClose();
   };
 
+  const ratingOptions = [
+    { label: 'Çok Kötü', value: 'VERY_BAD' },
+    { label: 'Kötü', value: 'BAD' },
+    { label: 'Fena Değil', value: 'AVERAGE' },
+    { label: 'İyi', value: 'GOOD' },
+    { label: 'Çok İyi', value: 'VERY_GOOD' }
+  ];
+
   return (
     <Dialog 
       open={open} 
       onClose={handleCancel}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
     >
-      <DialogTitle>Proje Değerlendirmesi</DialogTitle>
+      <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>Proje Değerlendirmesi</DialogTitle>
       <DialogContent>
-        <Box sx={{ mt: 2 }}>
+        <Box sx={{ mt: 2, mb: 2 }}>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
           
-          <Typography gutterBottom>
-            Puan: {score}
+          <Typography variant="h6" gutterBottom>
+            Ortalama Puan: {score.toFixed(2)}
           </Typography>
-          <Slider
-            value={score}
-            onChange={(_, newValue) => setScore(newValue)}
-            valueLabelDisplay="auto"
-            step={1}
-            marks
-            min={0}
-            max={100}
-            sx={{ mb: 3 }}
-          />
 
           <TextField
             label="Değerlendirme Açıklaması"
@@ -94,7 +137,37 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
             placeholder="Projeyle ilgili değerlendirmenizi yazın..."
             error={error && !description.trim()}
             helperText={error && !description.trim() ? "Açıklama zorunludur" : ""}
+            sx={{ mb: 3 }}
           />
+
+          {[
+            { label: 'Orijinallik', value: originality, setter: setOriginality },
+            { label: 'Yenilik', value: innovation, setter: setInnovation },
+            { label: 'Teknik Yeterlilik', value: technicalProficiency, setter: setTechnicalProficiency },
+            { label: 'Uygulanabilirlik', value: applicability, setter: setApplicability },
+            { label: 'Tasarım ve İşlevsellik', value: designFunctionality, setter: setDesignFunctionality },
+            { label: 'Etkileşim Potansiyeli', value: impactPotential, setter: setImpactPotential },
+            { label: 'Sunum ve İletişim', value: presentationCommunication, setter: setPresentationCommunication },
+            { label: 'Sürdürülebilirlik', value: sustainability, setter: setSustainability }
+          ].map((criteria, index) => (
+            <FormControl component="fieldset" key={index} sx={{ mb: 3 }}>
+              <FormLabel component="legend" sx={{ fontWeight: 'bold' }}>{criteria.label}</FormLabel>
+              <RadioGroup
+                row
+                value={criteria.value}
+                onChange={(e) => criteria.setter(e.target.value)}
+              >
+                {ratingOptions.map((option) => (
+                  <FormControlLabel
+                    key={option.value}
+                    value={option.value}
+                    control={<Radio color="primary" />}
+                    label={option.label}
+                  />
+                ))}
+              </RadioGroup>
+            </FormControl>
+          ))}
         </Box>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
@@ -118,4 +191,4 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
   );
 };
 
-export default AssessmentModal; 
+export default AssessmentModal;

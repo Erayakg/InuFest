@@ -40,6 +40,25 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 
+const ratingLabels = {
+  VERY_BAD: { label: 'Çok Kötü', score: 0 },
+  BAD: { label: 'Kötü', score: 25 },
+  AVERAGE: { label: 'Fena Değil', score: 50 },
+  GOOD: { label: 'İyi', score: 75 },
+  VERY_GOOD: { label: 'Çok İyi', score: 100 }
+};
+
+const criterionLabels = {
+  originality: 'Orijinallik',
+  innovation: 'Yenilik',
+  technicalProficiency: 'Teknik Yeterlilik',
+  applicability: 'Uygulanabilirlik',
+  designFunctionality: 'Tasarım ve İşlevsellik',
+  impactPotential: 'Etkileşim Potansiyeli',
+  presentationCommunication: 'Sunum ve İletişim',
+  sustainability: 'Sürdürülebilirlik'
+};
+
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -57,6 +76,8 @@ const ProjectDetail = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
+  const userRole = localStorage.getItem('role');
+
   useEffect(() => {
     const fetchProjectData = async () => {
       try {
@@ -71,6 +92,9 @@ const ProjectDetail = () => {
         } else {
           setError('Proje bilgileri alınamadı');
         }
+
+        // Log the referees response to verify data
+        console.log('Referees Response:', refereesResponse.data);
 
         // Hakem bilgilerini set et
         setProjectReferees(refereesResponse.data);
@@ -200,18 +224,31 @@ const ProjectDetail = () => {
 
   // Ortalama puan hesaplama
   const calculateAverageScore = (referees) => {
-    const validAssessments = referees.filter(ref => ref.assessment?.score);
-    if (validAssessments.length === 0) return null;
+    if (!referees || referees.length === 0) return null;
+
+    const allScores = referees.flatMap(ref => 
+      ref.assessments ? ref.assessments.map(assessment => assessment.score) : []
+    );
+
+    if (allScores.length === 0) return null;
     
-    const totalScore = validAssessments.reduce((sum, ref) => sum + ref.assessment.score, 0);
-    return (totalScore / validAssessments.length).toFixed(2);
+    const totalScore = allScores.reduce((sum, score) => sum + score, 0);
+    return (totalScore / allScores.length).toFixed(2);
   };
 
   // Ortalama puanı hesapla
   const averageScore = calculateAverageScore(projectReferees);
 
+  const calculateOverallAverageScore = (referees) => {
+    const allScores = referees.flatMap(ref => ref.assessments.map(assessment => assessment.score));
+    if (allScores.length === 0) return null;
+    
+    const totalScore = allScores.reduce((sum, score) => sum + score, 0);
+    return (totalScore / allScores.length).toFixed(2);
+  };
+
   const RefereeCard = () => {
-    const averageScore = calculateAverageScore(projectReferees);
+    const overallAverageScore = calculateOverallAverageScore(projectReferees);
 
     // Puana göre renk belirleme fonksiyonu
     const getScoreColor = (score) => {
@@ -224,19 +261,13 @@ const ProjectDetail = () => {
     return (
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PersonIcon color="primary" />
-            Hakemler ve Değerlendirmeler
-          </Typography>
-          <Divider sx={{ mb: 2 }} />
-          
-          {averageScore && (
+          {overallAverageScore !== null && (
             <Box 
               sx={{ 
                 mb: 3, 
                 p: 3,
                 borderRadius: 2,
-                background: (theme) => `linear-gradient(45deg, ${getScoreColor(averageScore)} 0%, ${theme.palette.background.paper} 200%)`,
+                background: (theme) => `linear-gradient(45deg, ${getScoreColor(overallAverageScore)} 0%, ${theme.palette.background.paper} 200%)`,
                 boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -245,7 +276,7 @@ const ProjectDetail = () => {
               }}
             >
               <Typography variant="subtitle1" color="white">
-                Ortalama Puan
+                Tüm Hakemlerin Ortalama Puanı
               </Typography>
               <Typography 
                 variant="h3" 
@@ -255,10 +286,16 @@ const ProjectDetail = () => {
                   textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
                 }}
               >
-                {averageScore}
+                {overallAverageScore}
               </Typography>
             </Box>
           )}
+
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PersonIcon color="primary" />
+            Hakemler ve Değerlendirmeler
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
           
           {projectReferees && projectReferees.length > 0 ? (
             <Stack spacing={2}>
@@ -273,40 +310,22 @@ const ProjectDetail = () => {
                         {referee.refereeName}
                       </Typography>
                       
-                      {referee.assessment ? (
-                        <Box sx={{ mt: 1 }}>
-                          <Typography variant="body2" color="textSecondary" gutterBottom>
-                            <strong>Puan:</strong> {referee.assessment.score}
-                          </Typography>
-                          {referee.assessment.description && (
-                            <>
-                              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                                <strong>Değerlendirme:</strong>
+                      {referee.assessments && referee.assessments.length > 0 ? (
+                        referee.assessments.map((assessment) => (
+                          <Box key={assessment.id} sx={{ mt: 1 }}>
+                            <Typography variant="body2" color="textSecondary" gutterBottom>
+                              <strong>Puan:</strong> {assessment.score || 'N/A'}
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary" gutterBottom>
+                              <strong>Açıklama:</strong> {assessment.description}
+                            </Typography>
+                            {['originality', 'innovation', 'technicalProficiency', 'applicability', 'designFunctionality', 'impactPotential', 'presentationCommunication', 'sustainability'].map((criterion) => (
+                              <Typography variant="body2" color="textSecondary" gutterBottom key={criterion}>
+                                <strong>{criterionLabels[criterion]}:</strong> {ratingLabels[assessment[criterion]]?.score}
                               </Typography>
-                              <Paper 
-                                variant="outlined" 
-                                sx={{ 
-                                  p: 2, 
-                                  mt: 1, 
-                                  bgcolor: 'grey.50',
-                                  borderRadius: 1,
-                                  maxHeight: '300px',
-                                  overflowY: 'auto'
-                                }}
-                              >
-                                <Typography 
-                                  variant="body2" 
-                                  sx={{ 
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-word'
-                                  }}
-                                >
-                                  {referee.assessment.description}
-                                </Typography>
-                              </Paper>
-                            </>
-                          )}
-                        </Box>
+                            ))}
+                          </Box>
+                        ))
                       ) : (
                         <Chip
                           label="Değerlendirme Bekliyor"
@@ -427,27 +446,29 @@ const ProjectDetail = () => {
               </List>
 
               {/* Tehlikeli Bölge */}
-              <Box sx={{ 
-                mt: 3, 
-                p: 2, 
-                bgcolor: '#ffebee', 
-                borderRadius: 1,
-                border: '1px solid #ef5350'
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="h6" color="error">
-                    Tehlikeli Bölge
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => setOpenDeleteDialog(true)}
-                  >
-                    Projeyi Sil
-                  </Button>
+              {userRole === 'ROLE_STUDENT' && (
+                <Box sx={{ 
+                  mt: 3, 
+                  p: 2, 
+                  bgcolor: '#ffebee', 
+                  borderRadius: 1,
+                  border: '1px solid #ef5350'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Typography variant="h6" color="error">
+                      Tehlikeli Bölge
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => setOpenDeleteDialog(true)}
+                    >
+                      Projeyi Sil
+                    </Button>
+                  </Box>
                 </Box>
-              </Box>
+              )}
             </CardContent>
           </Card>
 
@@ -503,40 +524,22 @@ const ProjectDetail = () => {
                             {referee.refereeName}
                           </Typography>
                           
-                          {referee.assessment ? (
-                            <Box sx={{ mt: 1 }}>
-                              <Typography variant="body2" color="textSecondary" gutterBottom>
-                                <strong>Puan:</strong> {referee.assessment.score}
-                              </Typography>
-                              {referee.assessment.description && (
-                                <>
-                                  <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                                    <strong>Değerlendirme:</strong>
+                          {referee.assessments && referee.assessments.length > 0 ? (
+                            referee.assessments.map((assessment) => (
+                              <Box key={assessment.id} sx={{ mt: 1 }}>
+                                <Typography variant="body2" color="textSecondary" gutterBottom>
+                                  <strong>Puan:</strong> {assessment.score}
+                                </Typography>
+                                <Typography variant="body2" color="textSecondary" gutterBottom>
+                                  <strong>Açıklama:</strong> {assessment.description}
+                                </Typography>
+                                {['originality', 'innovation', 'technicalProficiency', 'applicability', 'designFunctionality', 'impactPotential', 'presentationCommunication', 'sustainability'].map((criterion) => (
+                                  <Typography variant="body2" color="textSecondary" gutterBottom key={criterion}>
+                                    <strong>{criterionLabels[criterion]}:</strong> {ratingLabels[assessment[criterion]]?.score}
                                   </Typography>
-                                  <Paper 
-                                    variant="outlined" 
-                                    sx={{ 
-                                      p: 2, 
-                                      mt: 1, 
-                                      bgcolor: 'grey.50',
-                                      borderRadius: 1,
-                                      maxHeight: '300px',
-                                      overflowY: 'auto'
-                                    }}
-                                  >
-                                    <Typography 
-                                      variant="body2" 
-                                      sx={{ 
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-word'
-                                      }}
-                                    >
-                                      {referee.assessment.description}
-                                    </Typography>
-                                  </Paper>
-                                </>
-                              )}
-                            </Box>
+                                ))}
+                              </Box>
+                            ))
                           ) : (
                             <Chip
                               label="Değerlendirme Bekliyor"
