@@ -32,6 +32,8 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import CategoryIcon from '@mui/icons-material/Category';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import AssessmentModal from './AssessmentModal';
+import GradeIcon from '@mui/icons-material/Grade';
 
 const RefereeProjectList = () => {
   const theme = useTheme();
@@ -44,34 +46,37 @@ const RefereeProjectList = () => {
   const [sortOrder, setSortOrder] = useState("desc");
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [assessmentModalOpen, setAssessmentModalOpen] = useState(false);
+
+  const fetchRefereeProjects = async () => {
+    try {
+      setLoading(true);
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        throw new Error('Kullanıcı bilgisi bulunamadı');
+      }
+
+      const response = await axios.get(`/v1/project/referee/getAllProject/${userId}`);
+      
+      if (response.data && response.data.data) {
+        const projectData = Array.isArray(response.data.data) 
+          ? response.data.data 
+          : [response.data.data];
+        
+        setProjects(projectData);
+      } else {
+        setProjects([]);
+      }
+    } catch (err) {
+      console.error('Error fetching referee projects:', err);
+      setError(err.response?.data?.message || 'Projeler yüklenirken bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchRefereeProjects = async () => {
-      try {
-        const userId = localStorage.getItem('userId');
-        if (!userId) {
-          throw new Error('Kullanıcı bilgisi bulunamadı');
-        }
-
-        const response = await axios.get(`/v1/project/referee/getAllProject/${userId}`);
-        
-        if (response.data && response.data.data) {
-          const projectData = Array.isArray(response.data.data) 
-            ? response.data.data 
-            : [response.data.data];
-          
-          setProjects(projectData);
-        } else {
-          setProjects([]);
-        }
-      } catch (err) {
-        console.error('Error fetching referee projects:', err);
-        setError(err.response?.data?.message || 'Projeler yüklenirken bir hata oluştu');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchRefereeProjects();
   }, []);
 
@@ -119,6 +124,15 @@ const RefereeProjectList = () => {
     if (!dateString) return 'Tarih bilgisi yok';
     const date = new Date(dateString);
     return date.toLocaleString('tr-TR').replace(',', ' -');
+  };
+
+  const handleAssessment = (projectId) => {
+    setSelectedProjectId(projectId);
+    setAssessmentModalOpen(true);
+  };
+
+  const handleAssessmentSuccess = () => {
+    fetchRefereeProjects();
   };
 
   const renderMobileView = () => (
@@ -170,13 +184,26 @@ const RefereeProjectList = () => {
               <Typography variant="caption" color="textSecondary">
                 {formatDate(project.createdDate)}
               </Typography>
-              <IconButton
-                size="small"
-                onClick={() => handleView(project.id)}
-                color="primary"
-              >
-                <VisibilityIcon />
-              </IconButton>
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                <Tooltip title="Detayları Görüntüle">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleView(project.id)}
+                    color="primary"
+                  >
+                    <VisibilityIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Değerlendir">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleAssessment(project.id)}
+                    color="secondary"
+                  >
+                    <GradeIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </Box>
           </Card>
         </Grid>
@@ -267,15 +294,7 @@ const RefereeProjectList = () => {
                 </Box>
               </TableCell>
               <TableCell align="center">
-                <Tooltip title="Detayları Görüntüle">
-                  <IconButton
-                    size="small"
-                    onClick={() => handleView(project.id)}
-                    color="primary"
-                  >
-                    <VisibilityIcon />
-                  </IconButton>
-                </Tooltip>
+                {renderActionButtons(project.id)}
               </TableCell>
             </TableRow>
           ))}
@@ -325,6 +344,29 @@ const RefereeProjectList = () => {
           Toplam: {filteredProjects.length} proje
         </Typography>
       </Box>
+    </Box>
+  );
+
+  const renderActionButtons = (projectId) => (
+    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+      <Tooltip title="Detayları Görüntüle">
+        <IconButton
+          size="small"
+          onClick={() => handleView(projectId)}
+          color="primary"
+        >
+          <VisibilityIcon />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Değerlendir">
+        <IconButton
+          size="small"
+          onClick={() => handleAssessment(projectId)}
+          color="secondary"
+        >
+          <GradeIcon />
+        </IconButton>
+      </Tooltip>
     </Box>
   );
 
@@ -390,6 +432,15 @@ const RefereeProjectList = () => {
           </Box>
         </CardContent>
       </Card>
+      <AssessmentModal
+        open={assessmentModalOpen}
+        handleClose={() => {
+          setAssessmentModalOpen(false);
+          setSelectedProjectId(null);
+        }}
+        projectId={selectedProjectId}
+        onSuccess={handleAssessmentSuccess}
+      />
     </Container>
   );
 };
