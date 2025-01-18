@@ -46,10 +46,12 @@ const RefereeProjectList = () => {
   const [rowsPerPage] = useState(10);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [assessmentModalOpen, setAssessmentModalOpen] = useState(false);
+
   const [refereeId, setRefereeId] = useState(null);
   const [score, setScore] = useState(null);
   const userId = localStorage.getItem("userId");
   console.log(userId);
+
 
   const fetchRefereeProjects = async () => {
     try {
@@ -143,15 +145,43 @@ const RefereeProjectList = () => {
     return date.toLocaleString("tr-TR").replace(",", " -");
   };
 
+  const fetchProjectReferees = async () => {
+    try {
+      const refereeId = localStorage.getItem('userId');
+      if (!refereeId) return;
+
+      const response = await axios.get('/v1/project-referees/by-project');
+      
+      const refereeData = response.data.map(item => ({
+        id: item.id,
+        projectId: item.projectId,
+        refereeId: item.refereeId,
+        assessments: item.assessments
+      }));
+      
+      setProjectReferees(refereeData || []);
+      
+    } catch (error) {
+      console.error('Referee projeleri alınamadı:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjectReferees();
+  }, []);
+
   const handleAssessment = (projectId) => {
+
     const project = projects.find(p => p.id === projectId);
     setSelectedProjectId(projectId);
     setRefereeId(project.refereeId);
+
     setAssessmentModalOpen(true);
   };
 
   const handleAssessmentSuccess = () => {
     fetchRefereeProjects();
+    fetchProjectReferees();
   };
 
   const renderMobileView = () => (
@@ -463,14 +493,16 @@ const RefereeProjectList = () => {
       </Card>
       <AssessmentModal
         open={assessmentModalOpen}
-        handleClose={() => {
+        handleClose={(success) => {
           setAssessmentModalOpen(false);
+
           setSelectedProjectId(null);
           setRefereeId(null);
         }}
         projectId={selectedProjectId}
         refereeId={refereeId}
         onSuccess={handleAssessmentSuccess}
+
       />
     </Container>
   );
