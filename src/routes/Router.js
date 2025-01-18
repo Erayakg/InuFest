@@ -11,7 +11,7 @@ import AdminPage from "../views/pages/AdminPage.js";
 import VerifyEmail from "../views/auth/VerifyEmail";
 import PrivateRoute from '../components/PrivateRoute';
 import ProjectListAdmin from "../views/admin/ProjectList";
-
+import RefereeProjectList from "../views/referee/RefereeProjectList";
 /****Layouts*****/
 const FullLayout = lazy(() => import("../layouts/FullLayout/FullLayout.js"));
 /****End Layouts*****/
@@ -50,6 +50,7 @@ const ThemeRoutes = [
       { path: "/admin", element: <AdminPage /> },
       { path: "/projectDetails/:id", element: <ProjectDetail /> },
       { path: "/admin/projects", element: <ProjectListAdmin /> },
+      { path: "/referee-projects", element: <RefereeProjectList /> },
     ],
   },
   // Public routes - giriş yapmadan erişilebilen rotalar

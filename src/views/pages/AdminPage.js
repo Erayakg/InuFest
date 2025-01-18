@@ -272,7 +272,7 @@ const AdminPage = () => {
     e.preventDefault();
     setIsLoading(prev => ({ ...prev, addCategory: true }));
     try {
-      await axios.post('/category/addcategory', { name: newCategoryName });
+      await axios.post('/category/addCategory', { name: newCategoryName });
       fetchCategories();
       setNewCategoryName('');
       setShowCategoryForm(false);

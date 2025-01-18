@@ -1,5 +1,6 @@
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 
 const Menuitems = [
   {
@@ -15,20 +16,23 @@ const Menuitems = [
     roles: ["ROLE_ADMIN"]
   },
   {
-    
     title: "Projelerim",
     icon: DashboardOutlinedIcon,
     href: "/projects",
-    roles: [ "ROLE_STUDENT"]
+    roles: ["ROLE_STUDENT"]
   },
-  
   {
     title: "Proje Ekle",
     icon: DashboardOutlinedIcon,
     href: "/create-project",
-    roles: [ "ROLE_STUDENT"]
+    roles: ["ROLE_STUDENT"]
   },
- 
+  {
+    title: "Üzerime Atanan Projeler",
+    icon: AssignmentIcon,
+    href: "/referee-projects",
+    roles: ["ROLE_REFEREE"]
+  },
   {
     title: "Giriş",
     icon: DashboardOutlinedIcon,
@@ -53,7 +57,6 @@ const Menuitems = [
     href: "/logout",
     roles: ["ROLE_ADMIN", "ROLE_STUDENT", "ROLE_REFEREE"]
   },
- 
 ];
 
 export default Menuitems;
