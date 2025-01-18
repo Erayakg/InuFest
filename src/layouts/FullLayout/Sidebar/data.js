@@ -34,6 +34,12 @@ const Menuitems = [
     roles: ["ROLE_REFEREE"]
   },
   {
+    title: "Hakem Profili",
+    icon: DashboardOutlinedIcon,
+    href: "/referee",
+    roles: ["ROLE_REFEREE"]
+  },
+  {
     title: "Giriş",
     icon: DashboardOutlinedIcon,
     href: "/login",
@@ -49,7 +55,7 @@ const Menuitems = [
     title: "Profil",
     icon: DashboardOutlinedIcon,
     href: "/profile",
-    roles: ["ROLE_ADMIN", "ROLE_STUDENT", "ROLE_REFEREE"]
+    roles: ["ROLE_ADMIN", "ROLE_STUDENT"]
   },
   {
     title: "Çıkış Yap",

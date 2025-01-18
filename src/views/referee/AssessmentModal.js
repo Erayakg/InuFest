@@ -14,9 +14,7 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
-
 const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
-
   const [score, setScore] = useState(70);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,15 +30,15 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
     setError(null);
 
     try {
-
-      await axios.post('/v1/assesment', {
+      await axios.post('/v1/assessments/createAssessment', {
         score,
         description,
         projectRefereeId: refereeId
       });
       console.log(score,description,refereeId);
 
-      handleClose(true);
+      onSuccess?.();
+      handleClose();
     } catch (err) {
       setError(err.response?.data?.message || 'Değerlendirme kaydedilirken bir hata oluştu');
     } finally {
