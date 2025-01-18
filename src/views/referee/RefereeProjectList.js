@@ -25,20 +25,18 @@ import {
   InputLabel,
   Pagination,
 } from "@mui/material";
-import { useTheme } from '@mui/material/styles';
+import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import PersonIcon from '@mui/icons-material/Person';
-import GroupsIcon from '@mui/icons-material/Groups';
-import CategoryIcon from '@mui/icons-material/Category';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import AssessmentModal from './AssessmentModal';
-import GradeIcon from '@mui/icons-material/Grade';
+import PersonIcon from "@mui/icons-material/Person";
+import GradeIcon from "@mui/icons-material/Grade";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import AssessmentModal from "./AssessmentModal";
 
 const RefereeProjectList = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -48,31 +46,51 @@ const RefereeProjectList = () => {
   const [rowsPerPage] = useState(10);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [assessmentModalOpen, setAssessmentModalOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [projectReferees, setProjectReferees] = useState([]);
+
+  const [refereeId, setRefereeId] = useState(null);
+  const [score, setScore] = useState(null);
+  const userId = localStorage.getItem("userId");
+  console.log(userId);
+
 
   const fetchRefereeProjects = async () => {
     try {
       setLoading(true);
-      const userId = localStorage.getItem('userId');
       if (!userId) {
-        throw new Error('Kullanıcı bilgisi bulunamadı');
+        throw new Error("Kullanıcı bilgisi bulunamadı");
       }
 
-      const response = await axios.get(`/v1/project/referee/getAllProject/${userId}`);
+      // Önce projeleri al
+      const projectsResponse = await axios.get(`/v1/project/referee/getAllProject/${userId}`);
       
-      if (response.data && response.data.data) {
-        const projectData = Array.isArray(response.data.data) 
-          ? response.data.data 
-          : [response.data.data];
-        
-        setProjects(projectData);
+      // Sonra değerlendirmeleri al
+      const assessmentsResponse = await axios.get(`/v1/project-referees/by-referee/${userId}`);
+
+      if (projectsResponse.data && projectsResponse.data.data) {
+        const projectData = Array.isArray(projectsResponse.data.data) 
+          ? projectsResponse.data.data 
+          : [projectsResponse.data.data];
+
+        // Değerlendirme puanlarını projelere ekle
+        const projectsWithScores = projectData.map(project => {
+          const assessment = assessmentsResponse.data.find(
+            item => item.projectId === project.id
+          );
+          return {
+            ...project,
+            score: assessment?.assessments?.[0]?.score || null,
+            refereeId: assessment?.id || null
+          };
+        });
+
+        setProjects(projectsWithScores);
+        console.log(projectsWithScores);
       } else {
         setProjects([]);
       }
     } catch (err) {
-      console.error('Error fetching referee projects:', err);
-      setError(err.response?.data?.message || 'Projeler yüklenirken bir hata oluştu');
+      console.error("Error fetching referee projects:", err);
+      setError(err.response?.data?.message || "Projeler yüklenirken bir hata oluştu");
     } finally {
       setLoading(false);
     }
@@ -82,10 +100,9 @@ const RefereeProjectList = () => {
     fetchRefereeProjects();
   }, []);
 
-  const filteredProjects = projects
-    .filter(project =>
-      project.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const filteredProjects = projects.filter((project) =>
+    project.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const sortedProjects = [...filteredProjects].sort((a, b) => {
     const dateA = new Date(a.createdDate).getTime();
@@ -117,15 +134,15 @@ const RefereeProjectList = () => {
   };
 
   const truncateText = (text, maxLength = 50) => {
-    if (!text) return '';
+    if (!text) return "";
     if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+    return text.substring(0, maxLength) + "...";
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Tarih bilgisi yok';
+    if (!dateString) return "Tarih bilgisi yok";
     const date = new Date(dateString);
-    return date.toLocaleString('tr-TR').replace(',', ' -');
+    return date.toLocaleString("tr-TR").replace(",", " -");
   };
 
   const fetchProjectReferees = async () => {
@@ -154,21 +171,11 @@ const RefereeProjectList = () => {
   }, []);
 
   const handleAssessment = (projectId) => {
-    console.log('Project ID:', projectId);
-    console.log('Project Referees:', projectReferees);
-    
-    const projectReferee = projectReferees.find(pr => pr.projectId === projectId);
-    console.log('Found Project Referee:', projectReferee);
-    
-    if (!projectReferee) {
-      console.error('Proje referee bilgisi bulunamadı:', projectId);
-      return;
-    }
 
-    setSelectedProject({
-      id: projectReferee.id,
-      assessment: projectReferee.assessments?.[0]
-    });
+    const project = projects.find(p => p.id === projectId);
+    setSelectedProjectId(projectId);
+    setRefereeId(project.refereeId);
+
     setAssessmentModalOpen(true);
   };
 
@@ -187,7 +194,7 @@ const RefereeProjectList = () => {
                 {project.name}
               </Typography>
               <Chip 
-                label={project.category?.name || 'Kategori Yok'} 
+                label={project.category?.name || "Kategori Yok"} 
                 size="small" 
                 color="primary"
                 variant="outlined"
@@ -201,32 +208,32 @@ const RefereeProjectList = () => {
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
               <PersonIcon color="primary" fontSize="small" />
               <Typography 
                 variant="body2" 
                 sx={{ 
                   color: theme.palette.primary.main,
-                  fontWeight: 'medium'
+                  fontWeight: "medium"
                 }}
               >
-                {project.student?.username || 'Kaptan bilgisi yok'}
+                {project.student?.username || "Kaptan bilgisi yok"}
               </Typography>
             </Box>
 
             <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center",
               borderTop: 1,
-              borderColor: 'divider',
+              borderColor: "divider",
               pt: 2,
               mt: 1
             }}>
               <Typography variant="caption" color="textSecondary">
                 {formatDate(project.createdDate)}
               </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+              <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
                 <Tooltip title="Detayları Görüntüle">
                   <IconButton
                     size="small"
@@ -241,6 +248,7 @@ const RefereeProjectList = () => {
                     size="small"
                     onClick={() => handleAssessment(project.id)}
                     color="secondary"
+                    disabled={project.score !== null && project.score !== undefined}
                   >
                     <GradeIcon />
                   </IconButton>
@@ -258,21 +266,22 @@ const RefereeProjectList = () => {
       component={Paper} 
       variant="outlined"
       sx={{ 
-        maxHeight: 'calc(100vh - 300px)',
-        overflowX: 'hidden'
+        maxHeight: "calc(100vh - 300px)",
+        overflowX: "hidden"
       }}
     >
       <Table sx={{ 
-        tableLayout: 'fixed',
-        minWidth: '100%'
+        tableLayout: "fixed",
+        minWidth: "100%"
       }}>
         <TableHead>
           <TableRow>
-            <TableCell width="25%" sx={{ fontWeight: 'bold' }}>Proje Adı</TableCell>
-            <TableCell width="30%" sx={{ fontWeight: 'bold' }}>Açıklama</TableCell>
-            <TableCell width="15%" sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
-            <TableCell width="20%" sx={{ fontWeight: 'bold' }}>Takım Kaptanı</TableCell>
-            <TableCell width="10%" align="center" sx={{ fontWeight: 'bold' }}>İşlemler</TableCell>
+            <TableCell width="20%" sx={{ fontWeight: "bold" }}>Proje Adı</TableCell>
+            <TableCell width="25%" sx={{ fontWeight: "bold" }}>Açıklama</TableCell>
+            <TableCell width="15%" sx={{ fontWeight: "bold" }}>Kategori</TableCell>
+            <TableCell width="15%" sx={{ fontWeight: "bold" }}>Takım Kaptanı</TableCell>
+            <TableCell width="15%" sx={{ fontWeight: "bold" }}>Değerlendirme Puanı</TableCell>
+            <TableCell width="10%" align="center" sx={{ fontWeight: "bold" }}>İşlemler</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -283,46 +292,46 @@ const RefereeProjectList = () => {
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
               <TableCell sx={{ 
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
               }}>
                 <Tooltip title={project.name}>
                   <Typography noWrap>{project.name}</Typography>
                 </Tooltip>
               </TableCell>
               <TableCell sx={{ 
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
               }}>
-                <Tooltip title={project.description || ''}>
+                <Tooltip title={project.description || ""}>
                   <Typography noWrap>{truncateText(project.description, 40)}</Typography>
                 </Tooltip>
               </TableCell>
               <TableCell>
                 <Chip 
-                  label={project.category?.name || 'Kategori Yok'} 
+                  label={project.category?.name || "Kategori Yok"} 
                   size="small" 
                   color="primary"
                   variant="outlined"
                   sx={{ 
-                    maxWidth: '100%',
+                    maxWidth: "100%",
                     '.MuiChip-label': {
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      overflow: "hidden",
+                      textOverflow: "ellipsis"
                     }
                   }}
                 />
               </TableCell>
               <TableCell sx={{ 
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
               }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <PersonIcon color="primary" fontSize="small" />
-                  <Tooltip title={project.student?.username || 'Kaptan bilgisi yok'}>
+                  <Tooltip title={project.student?.username || "Kaptan bilgisi yok"}>
                     <Typography 
                       noWrap 
                       sx={{ 
@@ -330,13 +339,44 @@ const RefereeProjectList = () => {
                         flex: 1
                       }}
                     >
-                      {project.student?.username || 'Kaptan bilgisi yok'}
+                      {project.student?.username || "Kaptan bilgisi yok"}
                     </Typography>
                   </Tooltip>
                 </Box>
               </TableCell>
               <TableCell align="center">
-                {renderActionButtons(project.id)}
+                {project.score ? (
+                  <Typography variant="body2" color="primary">
+                    {project.score}
+                  </Typography>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Değerlendirilmedi
+                  </Typography>
+                )}
+              </TableCell>
+              <TableCell align="center">
+                <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
+                  <Tooltip title="Detayları Görüntüle">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleView(project.id)}
+                      color="primary"
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Değerlendir">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleAssessment(project.id)}
+                      color="secondary"
+                      disabled={project.score !== null && project.score !== undefined}
+                    >
+                      <GradeIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
               </TableCell>
             </TableRow>
           ))}
@@ -348,12 +388,12 @@ const RefereeProjectList = () => {
   const renderControls = () => (
     <Box sx={{ 
       mb: 3, 
-      display: 'flex', 
+      display: "flex", 
       gap: 2, 
-      flexWrap: 'wrap', 
-      alignItems: 'center',
-      flexDirection: isMobile ? 'column' : 'row',
-      width: isMobile ? '100%' : 'auto'
+      flexWrap: "wrap", 
+      alignItems: "center",
+      flexDirection: isMobile ? "column" : "row",
+      width: isMobile ? "100%" : "auto"
     }}>
       <TextField
         label="Proje Ara"
@@ -362,13 +402,13 @@ const RefereeProjectList = () => {
         value={searchQuery}
         onChange={handleSearchChange}
         sx={{ 
-          minWidth: isMobile ? '100%' : 200 
+          minWidth: isMobile ? "100%" : 200 
         }}
       />
       <FormControl 
         size="small" 
         sx={{ 
-          minWidth: isMobile ? '100%' : 200 
+          minWidth: isMobile ? "100%" : 200 
         }}
       >
         <InputLabel>Sıralama</InputLabel>
@@ -378,9 +418,9 @@ const RefereeProjectList = () => {
         </Select>
       </FormControl>
       <Box sx={{ 
-        ml: isMobile ? 0 : 'auto',
-        width: isMobile ? '100%' : 'auto',
-        textAlign: isMobile ? 'center' : 'right'
+        ml: isMobile ? 0 : "auto",
+        width: isMobile ? "100%" : "auto",
+        textAlign: isMobile ? "center" : "right"
       }}>
         <Typography variant="body2" color="textSecondary">
           Toplam: {filteredProjects.length} proje
@@ -389,32 +429,9 @@ const RefereeProjectList = () => {
     </Box>
   );
 
-  const renderActionButtons = (projectId) => (
-    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-      <Tooltip title="Detayları Görüntüle">
-        <IconButton
-          size="small"
-          onClick={() => handleView(projectId)}
-          color="primary"
-        >
-          <VisibilityIcon />
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Değerlendir">
-        <IconButton
-          size="small"
-          onClick={() => handleAssessment(projectId)}
-          color="secondary"
-        >
-          <GradeIcon />
-        </IconButton>
-      </Tooltip>
-    </Box>
-  );
-
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
         <CircularProgress />
       </Box>
     );
@@ -451,7 +468,7 @@ const RefereeProjectList = () => {
             gutterBottom 
             sx={{ 
               mb: 4,
-              fontSize: isMobile ? '1.5rem' : '2rem' 
+              fontSize: isMobile ? "1.5rem" : "2rem" 
             }}
           >
             Üzerime Atanan Projeler
@@ -461,7 +478,7 @@ const RefereeProjectList = () => {
           
           {isMobile ? renderMobileView() : renderDesktopView()}
 
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
             <Pagination
               count={totalPages}
               page={page}
@@ -478,16 +495,17 @@ const RefereeProjectList = () => {
         open={assessmentModalOpen}
         handleClose={(success) => {
           setAssessmentModalOpen(false);
-          setSelectedProject(null);
-          if (success) {
-            handleAssessmentSuccess();
-          }
+
+          setSelectedProjectId(null);
+          setRefereeId(null);
         }}
-        projectId={selectedProject?.id}
-        existingAssessment={selectedProject?.assessment}
+        projectId={selectedProjectId}
+        refereeId={refereeId}
+        onSuccess={handleAssessmentSuccess}
+
       />
     </Container>
   );
 };
 
-export default RefereeProjectList; 
+export default RefereeProjectList;
