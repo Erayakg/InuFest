@@ -12,6 +12,7 @@ import VerifyEmail from "../views/auth/VerifyEmail";
 import PrivateRoute from '../components/PrivateRoute';
 import ProjectListAdmin from "../views/admin/ProjectList";
 import RefereeProjectList from "../views/referee/RefereeProjectList";
+import RefereePage from "../views/referee/referee.js";
 /****Layouts*****/
 const FullLayout = lazy(() => import("../layouts/FullLayout/FullLayout.js"));
 /****End Layouts*****/
@@ -32,7 +33,7 @@ const ThemeRoutes = [
     path: "/",
     element: <PrivateRoute><FullLayout /></PrivateRoute>,
     children: [
-      { path: "/", element: <Navigate to="/profile" /> },
+      { path: "/", element: <Navigate to="/login" /> },
       { path: "dashboards/dashboard1", element: <Dashboard1 /> },
       { path: "tables/basic-table", element: <BasicTable /> },
       { path: "/create-project", element: <CreateProject /> },
@@ -51,6 +52,7 @@ const ThemeRoutes = [
       { path: "/projectDetails/:id", element: <ProjectDetail /> },
       { path: "/admin/projects", element: <ProjectListAdmin /> },
       { path: "/referee-projects", element: <RefereeProjectList /> },
+      { path: "/referee", element: <RefereePage /> },
     ],
   },
   // Public routes - giriş yapmadan erişilebilen rotalar
