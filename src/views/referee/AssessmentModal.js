@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
-const AssessmentModal = ({ open, handleClose, projectId, onSuccess }) => {
+const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
   const [score, setScore] = useState(70);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,11 +30,12 @@ const AssessmentModal = ({ open, handleClose, projectId, onSuccess }) => {
     setError(null);
 
     try {
-      await axios.post('/v1/assessments', {
+      await axios.post('/v1/assessments/createAssessment', {
         score,
         description,
-        projectRefereeId: projectId
+        projectRefereeId: refereeId
       });
+      console.log(score,description,refereeId);
 
       onSuccess?.();
       handleClose();
