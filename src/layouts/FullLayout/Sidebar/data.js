@@ -55,7 +55,7 @@ const Menuitems = [
     title: "Profil",
     icon: DashboardOutlinedIcon,
     href: "/profile",
-    roles: ["ROLE_ADMIN", "ROLE_STUDENT"]
+    roles: [ "ROLE_STUDENT"]
   },
   {
     title: "Çıkış Yap",
