@@ -388,7 +388,7 @@ const ProjectList = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <SupervisorAccountIcon color="primary" fontSize="small" />
                 <Typography variant="body2" color="textSecondary">
-                  Danışmanlar: {project.refereeUsernameList?.length > 0 
+                  Hakemler: {project.refereeUsernameList?.length > 0 
                     ? project.refereeUsernameList.join(', ') 
                     : 'Atanmamış'}
                 </Typography>
@@ -430,7 +430,7 @@ const ProjectList = () => {
             <TableCell><strong>Kategori</strong></TableCell>
             <TableCell><strong>Kaptan</strong></TableCell>
             <TableCell><strong>Üyeler</strong></TableCell>
-            <TableCell><strong>Danışmanlar</strong></TableCell>
+            <TableCell><strong>Hakemler</strong></TableCell>
             <TableCell><strong>Tarih</strong></TableCell>
             <TableCell align="center"><strong>İşlemler</strong></TableCell>
           </TableRow>

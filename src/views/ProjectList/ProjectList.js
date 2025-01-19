@@ -96,7 +96,7 @@ const ProjectList = () => {
     if (!refereeList || refereeList.length === 0) {
       return (
         <Chip
-          label="Danışman Atanmamış"
+          label="Hakem Atanmamış"
           size="small"
           color="warning"
           variant="outlined"
@@ -244,7 +244,7 @@ const ProjectList = () => {
                           color="textSecondary"
                           sx={{ fontWeight: 'medium' }}
                         >
-                          Danışmanlar
+                          Hakemler
                         </Typography>
                       </Box>
                       <Box sx={{ pl: 3 }}>
