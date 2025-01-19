@@ -45,7 +45,8 @@ const RefereeProjectList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState("desc");
+  const [dateSortOrder, setDateSortOrder] = useState(null);
+  const [scoreSortOrder, setScoreSortOrder] = useState(null);
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
@@ -61,6 +62,7 @@ const RefereeProjectList = () => {
   });
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [assessmentData, setAssessmentData] = useState(null);
+  const [assessmentFilter, setAssessmentFilter] = useState("all");
 
   const fetchRefereeProjects = async () => {
     try {
@@ -118,18 +120,39 @@ const RefereeProjectList = () => {
     fetchRefereeProjects();
   }, []);
 
-  const filteredProjects = projects.filter((project) =>
-    project.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredAndSortedProjects = React.useMemo(() => {
+    return [...projects]
+      .filter(project =>
+        project.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .filter(project => {
+        if (assessmentFilter === "all") return true;
+        if (assessmentFilter === "assessed") return project.score !== null;
+        if (assessmentFilter === "unassessed") return project.score === null;
+        return true;
+      })
+      .sort((a, b) => {
+        if (scoreSortOrder) {
+          const scoreA = a.score || 0;
+          const scoreB = b.score || 0;
+          
+          if (scoreA !== scoreB) {
+            return scoreSortOrder === "highest" ? scoreB - scoreA : scoreA - scoreB;
+          }
+        }
+        
+        if (dateSortOrder) {
+          const dateA = new Date(a.createdDate).getTime();
+          const dateB = new Date(b.createdDate).getTime();
+          return dateSortOrder === "desc" ? dateB - dateA : dateA - dateB;
+        }
+        
+        return 0; // No sorting if no order is selected
+      });
+  }, [projects, searchQuery, assessmentFilter, scoreSortOrder, dateSortOrder]);
 
-  const sortedProjects = [...filteredProjects].sort((a, b) => {
-    const dateA = new Date(a.createdDate).getTime();
-    const dateB = new Date(b.createdDate).getTime();
-    return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
-  });
-
-  const totalPages = Math.ceil(sortedProjects.length / rowsPerPage);
-  const paginatedProjects = sortedProjects.slice(
+  const totalPages = Math.ceil(filteredAndSortedProjects.length / rowsPerPage);
+  const paginatedProjects = filteredAndSortedProjects.slice(
     (page - 1) * rowsPerPage,
     page * rowsPerPage
   );
@@ -139,8 +162,12 @@ const RefereeProjectList = () => {
     setPage(1);
   };
 
-  const handleSortChange = (event) => {
-    setSortOrder(event.target.value);
+  const handleDateSortChange = (event) => {
+    setDateSortOrder(event.target.value);
+  };
+
+  const handleScoreSortChange = (event) => {
+    setScoreSortOrder(event.target.value);
   };
 
   const handlePageChange = (event, newPage) => {
@@ -235,6 +262,11 @@ const RefereeProjectList = () => {
     setUpdateModalOpen(false);
     setAssessmentData(null);
     showNotification('Değerlendirme başarıyla güncellendi', 'success');
+  };
+
+  const handleAssessmentFilterChange = (event) => {
+    setAssessmentFilter(event.target.value);
+    setPage(1);
   };
 
   const renderMobileView = () => (
@@ -484,10 +516,47 @@ const RefereeProjectList = () => {
           minWidth: isMobile ? "100%" : 200 
         }}
       >
-        <InputLabel>Sıralama</InputLabel>
-        <Select value={sortOrder} label="Sıralama" onChange={handleSortChange}>
+        <InputLabel>Tarih Sıralaması</InputLabel>
+        <Select
+          value={dateSortOrder}
+          label="Tarih Sıralaması"
+          onChange={handleDateSortChange}
+        >
           <MenuItem value="desc">En Yeni</MenuItem>
           <MenuItem value="asc">En Eski</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl 
+        size="small" 
+        sx={{ 
+          minWidth: isMobile ? "100%" : 200 
+        }}
+      >
+        <InputLabel>Puan Sıralaması</InputLabel>
+        <Select
+          value={scoreSortOrder}
+          label="Puan Sıralaması"
+          onChange={handleScoreSortChange}
+        >
+          <MenuItem value="highest">En Yüksek</MenuItem>
+          <MenuItem value="lowest">En Düşük</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl 
+        size="small" 
+        sx={{ 
+          minWidth: isMobile ? "100%" : 200 
+        }}
+      >
+        <InputLabel>Değerlendirme Durumu</InputLabel>
+        <Select
+          value={assessmentFilter}
+          label="Değerlendirme Durumu"
+          onChange={handleAssessmentFilterChange}
+        >
+          <MenuItem value="all">Tümü</MenuItem>
+          <MenuItem value="assessed">Değerlendirilmiş</MenuItem>
+          <MenuItem value="unassessed">Değerlendirilmemiş</MenuItem>
         </Select>
       </FormControl>
       <Box sx={{ 
@@ -496,7 +565,7 @@ const RefereeProjectList = () => {
         textAlign: isMobile ? "center" : "right"
       }}>
         <Typography variant="body2" color="textSecondary">
-          Toplam: {filteredProjects.length} proje
+          Toplam: {filteredAndSortedProjects.length} proje
         </Typography>
       </Box>
     </Box>
