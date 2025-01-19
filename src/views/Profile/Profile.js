@@ -40,6 +40,7 @@ const Profile = () => {
 
   // LocalStorage'dan kullanıcı ID'sini al
   const userId = localStorage.getItem('userId');
+  const token = localStorage.getItem('token');
 
   // Kullanıcı verilerini çek
   useEffect(() => {
@@ -50,9 +51,19 @@ const Profile = () => {
         return;
       }
 
+      if (!token) {
+        setError('Authorization token not found');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await axios.get(`/student/getStudentById/${userId}`);
+        const response = await axios.get(`/student/getStudentById/${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         
         if (response.data.success) {
           const profileData = response.data.data;
@@ -79,7 +90,7 @@ const Profile = () => {
     };
 
     fetchUserData();
-  }, [userId]);
+  }, [userId, token]);
 
   const handleEdit = () => {
     setEditData(userData);
@@ -92,8 +103,17 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
+    if (!token) {
+      alert('Authorization token not found');
+      return;
+    }
+
     try {
-      const response = await axios.put(`/student/update/${userId}`, editData);
+      const response = await axios.put(`/student/update/${userId}`, editData, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (response.data.success) {
         setUserData(editData);

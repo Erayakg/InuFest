@@ -48,12 +48,19 @@ const RefereePage = () => {
         try {
             setLoading(true);
             const userId = localStorage.getItem('userId');
-            
+            const token = localStorage.getItem('token');
+
+            const config = {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            };
+
             // Hakem bilgilerini al
-            const refereeResponse = await axios.get(`/referee/referee/${userId}`);
+            const refereeResponse = await axios.get(`/referee/referee/${userId}`, config);
             
             // Değerlendirme bilgilerini al
-            const assessmentsResponse = await axios.get(`/v1/project-referees/by-referee/${userId}`);
+            const assessmentsResponse = await axios.get(`/v1/project-referees/by-referee/${userId}`, config);
             
             const referee = refereeResponse.data.data; // data içinden al
             const assessments = assessmentsResponse.data;
@@ -64,12 +71,15 @@ const RefereePage = () => {
                 email: referee.email,
                 projectCount: referee.projectCount,
                 totalAssessments: assessments.length,
-                recentAssessments: assessments.map(assessment => ({
-                    projectName: assessment.projectName,
-                    score: assessment.assessments[0]?.score,
-                    description: assessment.assessments[0]?.description,
-                    date: new Date().toISOString() // API'den tarih gelmediği için şimdilik current date
-                }))
+                recentAssessments: assessments.map(assessment => {
+                    const firstAssessment = assessment.assessments && assessment.assessments[0];
+                    return {
+                        projectName: assessment.projectName,
+                        score: firstAssessment?.score || 'N/A', // Default to 'N/A' if score is not available
+                        description: firstAssessment?.description || 'No description', // Default to 'No description' if not available
+                        date: new Date().toISOString() // API'den tarih gelmediği için şimdilik current date
+                    };
+                })
             });
         } catch (error) {
             console.error('Hakem bilgileri alınamadı:', error);

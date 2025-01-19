@@ -49,7 +49,7 @@ const RefereeProjectList = () => {
   const [refereeId, setRefereeId] = useState(null);
   const [score, setScore] = useState(null);
   const userId = localStorage.getItem("userId");
-  console.log(userId);
+  const token = localStorage.getItem("token");
 
   const fetchRefereeProjects = async () => {
     try {
@@ -57,12 +57,23 @@ const RefereeProjectList = () => {
       if (!userId) {
         throw new Error("Kullanıcı bilgisi bulunamadı");
       }
+      if (!token) {
+        throw new Error("Authorization token not found");
+      }
 
       // Önce projeleri al
-      const projectsResponse = await axios.get(`/v1/project/referee/getAllProject/${userId}`);
+      const projectsResponse = await axios.get(`/v1/project/referee/getAllProject/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       // Sonra değerlendirmeleri al
-      const assessmentsResponse = await axios.get(`/v1/project-referees/by-referee/${userId}`);
+      const assessmentsResponse = await axios.get(`/v1/project-referees/by-referee/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
       if (projectsResponse.data && projectsResponse.data.data) {
         const projectData = Array.isArray(projectsResponse.data.data) 
@@ -218,7 +229,6 @@ const RefereeProjectList = () => {
                     size="small"
                     onClick={() => handleAssessment(project.id)}
                     color="secondary"
-                    disabled={project.score !== null && project.score !== undefined}
                   >
                     <GradeIcon />
                   </IconButton>
@@ -468,8 +478,8 @@ const RefereeProjectList = () => {
           setSelectedProjectId(null);
           setRefereeId(null);
         }}
-        projectId={selectedProjectId}
         refereeId={refereeId}
+        existingAssessment={projects.find(p => p.id === selectedProjectId)?.assessment}
         onSuccess={handleAssessmentSuccess}
       />
     </Container>

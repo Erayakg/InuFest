@@ -18,19 +18,19 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
-const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
-  const [description, setDescription] = useState('');
+const AssessmentModal = ({ open, handleClose, refereeId, onSuccess, existingAssessment }) => {
+  const [description, setDescription] = useState(existingAssessment?.description || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [originality, setOriginality] = useState('AVERAGE');
-  const [innovation, setInnovation] = useState('AVERAGE');
-  const [technicalProficiency, setTechnicalProficiency] = useState('AVERAGE');
-  const [applicability, setApplicability] = useState('AVERAGE');
-  const [designFunctionality, setDesignFunctionality] = useState('AVERAGE');
-  const [impactPotential, setImpactPotential] = useState('AVERAGE');
-  const [presentationCommunication, setPresentationCommunication] = useState('AVERAGE');
-  const [sustainability, setSustainability] = useState('AVERAGE');
+  const [originality, setOriginality] = useState(existingAssessment?.originality || 'AVERAGE');
+  const [innovation, setInnovation] = useState(existingAssessment?.innovation || 'AVERAGE');
+  const [technicalProficiency, setTechnicalProficiency] = useState(existingAssessment?.technicalProficiency || 'AVERAGE');
+  const [applicability, setApplicability] = useState(existingAssessment?.applicability || 'AVERAGE');
+  const [designFunctionality, setDesignFunctionality] = useState(existingAssessment?.designFunctionality || 'AVERAGE');
+  const [impactPotential, setImpactPotential] = useState(existingAssessment?.impactPotential || 'AVERAGE');
+  const [presentationCommunication, setPresentationCommunication] = useState(existingAssessment?.presentationCommunication || 'AVERAGE');
+  const [sustainability, setSustainability] = useState(existingAssessment?.sustainability || 'AVERAGE');
 
   const ratingValues = {
     VERY_BAD: 0,
@@ -55,7 +55,7 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
     return totalScore / 8;
   };
 
-  const [score, setScore] = useState(calculateAverageScore());
+  const [score, setScore] = useState(existingAssessment?.score || calculateAverageScore());
 
   useEffect(() => {
     setScore(calculateAverageScore());
@@ -71,7 +71,15 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
     setError(null);
 
     try {
-      await axios.post('/v1/assessments', {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authorization token not found');
+      }
+
+      const url = existingAssessment ? `/v1/assessments/${existingAssessment.id}` : '/v1/assessments';
+      const method = existingAssessment ? 'put' : 'post';
+
+      await axios[method](url, {
         score,
         description,
         projectRefereeId: refereeId,
@@ -83,8 +91,14 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess }) => {
         impactPotential,
         presentationCommunication,
         sustainability
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
+
       handleClose(true);
+      onSuccess();
     } catch (err) {
       setError(err.response?.data?.message || 'Değerlendirme kaydedilirken bir hata oluştu');
     } finally {
