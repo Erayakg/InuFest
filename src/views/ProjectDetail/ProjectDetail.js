@@ -77,14 +77,29 @@ const ProjectDetail = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
   const userRole = localStorage.getItem('role');
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchProjectData = async () => {
+      if (!token) {
+        setError('Authorization token not found');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const [projectResponse, refereesResponse] = await Promise.all([
-          axios.get(`/v1/project/student/getProject/${id}`),
-          axios.get(`/v1/project-referees/by-project/${id}`)
+          axios.get(`/v1/project/student/getProject/${id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }),
+          axios.get(`/v1/project-referees/by-project/${id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
         ]);
         
         if (projectResponse.data.success) {
@@ -108,12 +123,15 @@ const ProjectDetail = () => {
     };
 
     fetchProjectData();
-  }, [id]);
+  }, [id, token]);
 
   const handleDownload = async () => {
     setDownloadLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authorization token not found');
+      }
+
       const response = await axios({
         method: 'GET',
         url: `/v1/project/${id}/download`,
@@ -159,7 +177,10 @@ const ProjectDetail = () => {
   const handleDelete = async () => {
     setDeleteLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authorization token not found');
+      }
+
       await axios.delete(`/v1/project/student/delete/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`

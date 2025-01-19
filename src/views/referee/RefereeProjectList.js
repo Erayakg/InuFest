@@ -24,14 +24,18 @@ import {
   FormControl,
   InputLabel,
   Pagination,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PersonIcon from "@mui/icons-material/Person";
 import GradeIcon from "@mui/icons-material/Grade";
+import DeleteIcon from '@mui/icons-material/Delete';
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AssessmentModal from "./AssessmentModal";
+import UpdateAssessmentModal from './UpdateAssessmentModal';
 
 const RefereeProjectList = () => {
   const theme = useTheme();
@@ -49,7 +53,14 @@ const RefereeProjectList = () => {
   const [refereeId, setRefereeId] = useState(null);
   const [score, setScore] = useState(null);
   const userId = localStorage.getItem("userId");
-  console.log(userId);
+  const token = localStorage.getItem("token");
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [assessmentData, setAssessmentData] = useState(null);
 
   const fetchRefereeProjects = async () => {
     try {
@@ -57,19 +68,27 @@ const RefereeProjectList = () => {
       if (!userId) {
         throw new Error("Kullanıcı bilgisi bulunamadı");
       }
+      if (!token) {
+        throw new Error("Authorization token not found");
+      }
 
-      // Önce projeleri al
-      const projectsResponse = await axios.get(`/v1/project/referee/getAllProject/${userId}`);
+      const projectsResponse = await axios.get(`/v1/project/referee/getAllProject/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
-      // Sonra değerlendirmeleri al
-      const assessmentsResponse = await axios.get(`/v1/project-referees/by-referee/${userId}`);
+      const assessmentsResponse = await axios.get(`/v1/project-referees/by-referee/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
       if (projectsResponse.data && projectsResponse.data.data) {
         const projectData = Array.isArray(projectsResponse.data.data) 
           ? projectsResponse.data.data 
           : [projectsResponse.data.data];
 
-        // Değerlendirme puanlarını projelere ekle
         const projectsWithScores = projectData.map(project => {
           const assessment = assessmentsResponse.data.find(
             item => item.projectId === project.id
@@ -77,12 +96,13 @@ const RefereeProjectList = () => {
           return {
             ...project,
             score: assessment?.assessments?.[0]?.score || null,
-            refereeId: assessment?.id || null
+            refereeId: assessment?.id || null,
+            assessmentId: assessment?.assessments?.[0]?.id || null
           };
         });
 
         setProjects(projectsWithScores);
-        console.log(projectsWithScores);
+        console.log("Projects with assessments:", projectsWithScores);
       } else {
         setProjects([]);
       }
@@ -143,15 +163,78 @@ const RefereeProjectList = () => {
     return date.toLocaleString("tr-TR").replace(",", " -");
   };
 
-  const handleAssessment = (projectId) => {
+  const handleAssessment = async (projectId) => {
     const project = projects.find(p => p.id === projectId);
-    setSelectedProjectId(projectId);
-    setRefereeId(project.refereeId);
-    setAssessmentModalOpen(true);
+    
+    if (!project) {
+      showNotification('Proje bulunamadı', 'error');
+      return;
+    }
+    
+    if (project.score !== null && project.assessmentId) {
+      // Mevcut değerlendirme varsa güncelleme modalını aç
+      try {
+        const response = await axios.get(`/v1/assessments/${project.assessmentId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        setAssessmentData(response.data);
+        setUpdateModalOpen(true);
+      } catch (error) {
+        console.error('Değerlendirme detayları alınırken hata oluştu:', error);
+        showNotification('Değerlendirme detayları alınırken bir hata oluştu', 'error');
+      }
+    } else {
+      // Yeni değerlendirme için normal modalı aç
+      setSelectedProjectId(projectId);
+      setRefereeId(project.refereeId);
+      setAssessmentModalOpen(true);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  const showNotification = (message, severity = 'success') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  const handleDeleteAssessment = async (projectId) => {
+    try {
+      if (!window.confirm('Değerlendirmeyi silmek istediğinizden emin misiniz?')) {
+        return;
+      }
+
+      const project = projects.find(p => p.id === projectId);
+      await axios.delete(`/v1/assessments/${project.assessmentId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      showNotification('Değerlendirme başarıyla silindi');
+      await fetchRefereeProjects();
+    } catch (error) {
+      console.error('Değerlendirme silinirken hata oluştu:', error);
+      showNotification('Değerlendirme silinirken bir hata oluştu', 'error');
+    }
   };
 
   const handleAssessmentSuccess = () => {
     fetchRefereeProjects();
+  };
+
+  const handleUpdateSuccess = () => {
+    fetchRefereeProjects();
+    setUpdateModalOpen(false);
+    setAssessmentData(null);
+    showNotification('Değerlendirme başarıyla güncellendi', 'success');
   };
 
   const renderMobileView = () => (
@@ -213,16 +296,26 @@ const RefereeProjectList = () => {
                     <VisibilityIcon />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Değerlendir">
+                <Tooltip title={project.score ? "Değerlendirmeyi Güncelle" : "Değerlendir"}>
                   <IconButton
                     size="small"
                     onClick={() => handleAssessment(project.id)}
                     color="secondary"
-                    disabled={project.score !== null && project.score !== undefined}
                   >
                     <GradeIcon />
                   </IconButton>
                 </Tooltip>
+                {project.score !== null && (
+                  <Tooltip title="Değerlendirmeyi Sil">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteAssessment(project.id)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
               </Box>
             </Box>
           </Card>
@@ -336,16 +429,26 @@ const RefereeProjectList = () => {
                       <VisibilityIcon />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Değerlendir">
+                  <Tooltip title={project.score ? "Değerlendirmeyi Güncelle" : "Değerlendir"}>
                     <IconButton
                       size="small"
                       onClick={() => handleAssessment(project.id)}
                       color="secondary"
-                      disabled={project.score !== null && project.score !== undefined}
                     >
                       <GradeIcon />
                     </IconButton>
                   </Tooltip>
+                  {project.score !== null && (
+                    <Tooltip title="Değerlendirmeyi Sil">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteAssessment(project.id)}
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </Box>
               </TableCell>
             </TableRow>
@@ -430,49 +533,75 @@ const RefereeProjectList = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Card variant="outlined">
-        <CardContent>
-          <Typography 
-            variant="h4" 
-            gutterBottom 
-            sx={{ 
-              mb: 4,
-              fontSize: isMobile ? "1.5rem" : "2rem" 
-            }}
-          >
-            Üzerime Atanan Projeler
-          </Typography>
-          
-          {renderControls()}
-          
-          {isMobile ? renderMobileView() : renderDesktopView()}
+    <>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Card variant="outlined">
+          <CardContent>
+            <Typography 
+              variant="h4" 
+              gutterBottom 
+              sx={{ 
+                mb: 4,
+                fontSize: isMobile ? "1.5rem" : "2rem" 
+              }}
+            >
+              Üzerime Atanan Projeler
+            </Typography>
+            
+            {renderControls()}
+            
+            {isMobile ? renderMobileView() : renderDesktopView()}
 
-          <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={handlePageChange}
-              color="primary"
-              showFirstButton
-              showLastButton
-              size={isMobile ? "small" : "medium"}
-            />
-          </Box>
-        </CardContent>
-      </Card>
-      <AssessmentModal
-        open={assessmentModalOpen}
-        handleClose={() => {
-          setAssessmentModalOpen(false);
-          setSelectedProjectId(null);
-          setRefereeId(null);
-        }}
-        projectId={selectedProjectId}
-        refereeId={refereeId}
-        onSuccess={handleAssessmentSuccess}
-      />
-    </Container>
+            <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={handlePageChange}
+                color="primary"
+                showFirstButton
+                showLastButton
+                size={isMobile ? "small" : "medium"}
+              />
+            </Box>
+          </CardContent>
+        </Card>
+        <AssessmentModal
+          open={assessmentModalOpen}
+          handleClose={() => {
+            setAssessmentModalOpen(false);
+            setSelectedProjectId(null);
+            setRefereeId(null);
+          }}
+          projectId={selectedProjectId}
+          refereeId={refereeId}
+          onSuccess={handleAssessmentSuccess}
+        />
+        <UpdateAssessmentModal
+          open={updateModalOpen}
+          handleClose={() => {
+            setUpdateModalOpen(false);
+            setAssessmentData(null);
+          }}
+          assessmentData={assessmentData}
+          onSuccess={handleUpdateSuccess}
+        />
+      </Container>
+      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 

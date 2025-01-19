@@ -64,7 +64,16 @@ const Login = () => {
                 localStorage.setItem("username", response.data.username);
                 localStorage.setItem("role", response.data.role);
                 localStorage.setItem("userId", response.data.userId);
-                navigate("/projects");
+
+                // Redirect based on role
+                const role = response.data.role;
+                if (role === "ROLE_ADMIN") {
+                    navigate("/admin");
+                } else if (role === "ROLE_STUDENT") {
+                    navigate("/projects");
+                } else if (role === "ROLE_REFEREE") {
+                    navigate("/referee-projects");
+                }
             }
         } catch (err) {
             if (err.response?.status === 403) {

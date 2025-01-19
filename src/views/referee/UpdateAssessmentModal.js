@@ -18,19 +18,35 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
-const AssessmentModal = ({ open, handleClose, refereeId, onSuccess, existingAssessment }) => {
-  const [description, setDescription] = useState(existingAssessment?.description || '');
+const UpdateAssessmentModal = ({ open, handleClose, assessmentData, onSuccess }) => {
+  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [originality, setOriginality] = useState(existingAssessment?.originality || 'AVERAGE');
-  const [innovation, setInnovation] = useState(existingAssessment?.innovation || 'AVERAGE');
-  const [technicalProficiency, setTechnicalProficiency] = useState(existingAssessment?.technicalProficiency || 'AVERAGE');
-  const [applicability, setApplicability] = useState(existingAssessment?.applicability || 'AVERAGE');
-  const [designFunctionality, setDesignFunctionality] = useState(existingAssessment?.designFunctionality || 'AVERAGE');
-  const [impactPotential, setImpactPotential] = useState(existingAssessment?.impactPotential || 'AVERAGE');
-  const [presentationCommunication, setPresentationCommunication] = useState(existingAssessment?.presentationCommunication || 'AVERAGE');
-  const [sustainability, setSustainability] = useState(existingAssessment?.sustainability || 'AVERAGE');
+  const [originality, setOriginality] = useState('AVERAGE');
+  const [innovation, setInnovation] = useState('AVERAGE');
+  const [technicalProficiency, setTechnicalProficiency] = useState('AVERAGE');
+  const [applicability, setApplicability] = useState('AVERAGE');
+  const [designFunctionality, setDesignFunctionality] = useState('AVERAGE');
+  const [impactPotential, setImpactPotential] = useState('AVERAGE');
+  const [presentationCommunication, setPresentationCommunication] = useState('AVERAGE');
+  const [sustainability, setSustainability] = useState('AVERAGE');
+
+  useEffect(() => {
+    if (assessmentData) {
+      setDescription(assessmentData.description || '');
+      setOriginality(assessmentData.originality || 'AVERAGE');
+      setInnovation(assessmentData.innovation || 'AVERAGE');
+      setTechnicalProficiency(assessmentData.technicalProficiency || 'AVERAGE');
+      setApplicability(assessmentData.applicability || 'AVERAGE');
+      setDesignFunctionality(assessmentData.designFunctionality || 'AVERAGE');
+      setImpactPotential(assessmentData.impactPotential || 'AVERAGE');
+      setPresentationCommunication(assessmentData.presentationCommunication || 'AVERAGE');
+      setSustainability(assessmentData.sustainability || 'AVERAGE');
+    }
+  }, [assessmentData]);
+
+
 
   const ratingValues = {
     VERY_BAD: 0,
@@ -39,7 +55,7 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess, existingAsse
     GOOD: 75,
     VERY_GOOD: 100
   };
-
+  
   const calculateAverageScore = () => {
     const totalScore = [
       originality,
@@ -54,12 +70,44 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess, existingAsse
 
     return totalScore / 8;
   };
+  
+ /* const handleSubmit = async () => {
+    if (!description.trim()) {
+      setError('Lütfen bir değerlendirme açıklaması yazın.');
+      return;
+    }
 
-  const [score, setScore] = useState(existingAssessment?.score || calculateAverageScore());
+    setLoading(true);
+    setError(null);
+
+    try {
+      await axios.put(`/v1/assessments/${assessmentData.id}`, {
+        score,
+        description,
+        projectRefereeId: assessmentData.projectRefereeId,
+        originality,
+        innovation,
+        technicalProficiency,
+        applicability,
+        designFunctionality,
+        impactPotential,
+        presentationCommunication,
+        sustainability
+      });
+      handleClose(true);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Değerlendirme kaydedilirken bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };*/
+  const [score, setScore] = useState(assessmentData?.score || calculateAverageScore());
 
   useEffect(() => {
     setScore(calculateAverageScore());
   }, [originality, innovation, technicalProficiency, applicability, designFunctionality, impactPotential, presentationCommunication, sustainability]);
+
+
 
   const handleSubmit = async () => {
     if (!description.trim()) {
@@ -71,45 +119,40 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess, existingAsse
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authorization token not found');
-      }
+      const updateData = {
+        score: score,
+        description: description,
+        projectRefereeId: assessmentData.projectRefereeId,
+        originality: originality,
+        innovation: innovation,
+        technicalProficiency: technicalProficiency,
+        applicability: applicability,
+        designFunctionality: designFunctionality,
+        impactPotential: impactPotential,
+        presentationCommunication: presentationCommunication,
+        sustainability: sustainability
+      };
 
-      const url = existingAssessment ? `/v1/assessments/${existingAssessment.id}` : '/v1/assessments';
-      const method = existingAssessment ? 'put' : 'post';
+      console.log('Gönderilen veri:', updateData);
 
-      await axios[method](url, {
-        score,
-        description,
-        projectRefereeId: refereeId,
-        originality,
-        innovation,
-        technicalProficiency,
-        applicability,
-        designFunctionality,
-        impactPotential,
-        presentationCommunication,
-        sustainability
-      }, {
+      const response = await axios.put(`/v1/assessments/${assessmentData.id}`, updateData, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
         }
       });
 
-      handleClose(true);
+      console.log('Sunucu yanıtı:', response.data);
+
       onSuccess();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Değerlendirme kaydedilirken bir hata oluştu');
+      handleClose();
+    } catch (error) {
+      console.error('Değerlendirme güncellenirken hata oluştu:', error);
+      console.log('Sunucu hata detayı:', error.response?.data);
+      setError(error.response?.data?.message || 'Değerlendirme güncellenirken bir hata oluştu');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCancel = () => {
-    setDescription('');
-    setError(null);
-    handleClose();
   };
 
   const ratingOptions = [
@@ -123,11 +166,11 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess, existingAsse
   return (
     <Dialog 
       open={open} 
-      onClose={handleCancel}
+      onClose={handleClose}
       maxWidth="md"
       fullWidth
     >
-      <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>Proje Değerlendirmesi</DialogTitle>
+      <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>Değerlendirme Güncelle</DialogTitle>
       <DialogContent>
         <Box sx={{ mt: 2, mb: 2 }}>
           {error && (
@@ -135,10 +178,6 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess, existingAsse
               {error}
             </Alert>
           )}
-          
-          <Typography variant="h6" gutterBottom>
-            Ortalama Puan: {score.toFixed(2)}
-          </Typography>
 
           <TextField
             label="Değerlendirme Açıklaması"
@@ -186,7 +225,7 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess, existingAsse
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button 
-          onClick={handleCancel} 
+          onClick={handleClose} 
           color="inherit"
           disabled={loading}
         >
@@ -198,11 +237,11 @@ const AssessmentModal = ({ open, handleClose, refereeId, onSuccess, existingAsse
           color="primary"
           disabled={loading}
         >
-          {loading ? <CircularProgress size={24} /> : 'Değerlendir'}
+          {loading ? <CircularProgress size={24} /> : 'Güncelle'}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default AssessmentModal;
+export default UpdateAssessmentModal; 

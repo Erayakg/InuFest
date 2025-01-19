@@ -32,6 +32,7 @@ import {
   Chip,
   Alert,
   Snackbar,
+  Pagination,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -41,6 +42,11 @@ import {
 } from '@mui/icons-material';
 
 const AdminPage = () => {
+  const token = localStorage.getItem('token');
+  const config = {
+    headers: { Authorization: `Bearer ${token}` }
+  };
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [openAssignDialog, setOpenAssignDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -75,6 +81,10 @@ const AdminPage = () => {
     message: '',
     severity: 'info'
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchMentors();
@@ -85,14 +95,12 @@ const AdminPage = () => {
   const fetchAllProjects = async () => {
     setIsLoading(prev => ({ ...prev, fetchData: true }));
     try {
-      // Tüm projeleri çek
-      const projectsResponse = await axios.get('/v1/project');
+      const projectsResponse = await axios.get('/v1/project', config);
       const allProjects = projectsResponse.data.data;
 
-      // Her proje için mentör atamalarını çek
       const projectsWithReferees = await Promise.all(
         allProjects.map(async (project) => {
-          const refereesResponse = await axios.get(`/v1/project-referees/by-project/${project.id}`);
+          const refereesResponse = await axios.get(`/v1/project-referees/by-project/${project.id}`, config);
           return {
             ...project,
             referees: refereesResponse.data.map(referee => ({
@@ -122,7 +130,7 @@ const AdminPage = () => {
         name: project.name,
         creator: project.creator,
         referees: [],
-        status: 'Mentör Bekleniyor'
+        status: 'Hakem Bekleniyor'
       })));
 
     } catch (error) {
@@ -134,7 +142,7 @@ const AdminPage = () => {
 
   const fetchMentors = async () => {
     try {
-      const response = await axios.get('/referee');
+      const response = await axios.get('/referee', config);
       setMentors(response.data.data);
       console.log(response.data.data);
     } catch (error) {
@@ -144,7 +152,7 @@ const AdminPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('/category');
+      const response = await axios.get('/category', config);
       setCategories(response.data.data);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -153,7 +161,7 @@ const AdminPage = () => {
 
   const fetchAssignedMentors = async (projectId) => {
     try {
-      const response = await axios.get(`/v1/project-referees/by-project/${projectId}`);
+      const response = await axios.get(`/v1/project-referees/by-project/${projectId}`, config);
       return response.data;
     } catch (error) {
       console.error('Error fetching assigned mentors:', error);
@@ -185,26 +193,26 @@ const AdminPage = () => {
     setAssignmentError(null);
 
     try {
-      const mentorAssignments = await axios.get(`/v1/project-referees/by-referee/${selectedMentor}`);
+      const mentorAssignments = await axios.get(`/v1/project-referees/by-referee/${selectedMentor}`, config);
       const isAlreadyAssigned = mentorAssignments.data.some(
         assignment => assignment.projectId === selectedProject.id
       );
 
       if (isAlreadyAssigned) {
-        setAssignmentError('Bu mentör zaten bu projeye atanmış!');
+        setAssignmentError('Bu hakem zaten bu projeye atanmış!');
         return;
       }
 
       await axios.post('/v1/project-referees', {
         projectId: selectedProject.id,
         refereeId: selectedMentor
-      });
+      }, config);
       
       await fetchAllProjects();
       handleCloseDialog();
     } catch (error) {
       console.error('Error assigning mentor:', error);
-      setAssignmentError(error.response?.data?.message || 'Mentor atama işlemi başarısız oldu');
+      setAssignmentError(error.response?.data?.message || 'Hakem atama işlemi başarısız oldu');
     } finally {
       setIsLoading(prev => ({ ...prev, assignMentor: false }));
     }
@@ -213,31 +221,29 @@ const AdminPage = () => {
   const handleRemoveMentor = async (projectId, refereeId, refereeName) => {
     console.log('Removing mentor with params:', { projectId, refereeId, refereeName });
     
-    if (window.confirm(`${refereeName} isimli mentörü projeden silmek istediğinize emin misiniz?`)) {
+    if (window.confirm(`${refereeName} isimli hakemü projeden silmek istediğinize emin misiniz?`)) {
       setIsLoading(prev => ({ ...prev, removeMentor: true }));
       try {
-        // Proje-hakem ilişkisini silmek için doğru ID'yi kullanıyoruz
-        const projectReferees = await axios.get(`/v1/project-referees/by-project/${projectId}`);
+        const projectReferees = await axios.get(`/v1/project-referees/by-project/${projectId}`, config);
         const refereeAssignment = projectReferees.data.find(ref => ref.refereeId === refereeId);
         
         if (!refereeAssignment) {
-          throw new Error('Mentör ataması bulunamadı');
+          throw new Error('Hakem ataması bulunamadı');
         }
 
-        // Atama ID'si ile silme işlemi yapıyoruz
-        await axios.delete(`/v1/project-referees/${refereeAssignment.id}`);
+        await axios.delete(`/v1/project-referees/${refereeAssignment.id}`, config);
         
         await fetchAllProjects();
         setSnackbar({
           open: true,
-          message: 'Mentör başarıyla kaldırıldı',
+          message: 'Hakem başarıyla kaldırıldı',
           severity: 'success'
         });
       } catch (error) {
         console.error('Error removing mentor:', error);
         setSnackbar({
           open: true,
-          message: `Mentör kaldırılırken bir hata oluştu: ${error.message}`,
+          message: `Hakem kaldırılırken bir hata oluştu: ${error.message}`,
           severity: 'error'
         });
       } finally {
@@ -257,7 +263,7 @@ const AdminPage = () => {
     e.preventDefault();
     setIsLoading(prev => ({ ...prev, addMentor: true }));
     try {
-      const response = await axios.post('/referee/addReferee', newMentorData);
+      const response = await axios.post('/referee/addReferee', newMentorData, config);
       setMentors([...mentors, response.data.data]);
       setNewMentorData({ name: '', mail: '', categoryId: '', phoneNumber: '' });
       setShowMentorForm(false);
@@ -272,7 +278,7 @@ const AdminPage = () => {
     e.preventDefault();
     setIsLoading(prev => ({ ...prev, addCategory: true }));
     try {
-      await axios.post('/category/addCategory', { name: newCategoryName });
+      await axios.post('/category/addCategory', { name: newCategoryName }, config);
       fetchCategories();
       setNewCategoryName('');
       setShowCategoryForm(false);
@@ -286,9 +292,10 @@ const AdminPage = () => {
   const handleUpdateCategory = async () => {
     setIsLoading(prev => ({ ...prev, updateCategory: true }));
     try {
-      await axios.put(`/category/update/${editingCategory.id}`, {
+      await axios.put('/category/updateCategory', {
+        categoryId: editingCategory.id,
         name: editingCategory.name
-      });
+      }, config);
       fetchCategories();
       setEditingCategory(null);
     } catch (error) {
@@ -301,7 +308,7 @@ const AdminPage = () => {
   const handleDeleteCategory = async (categoryId) => {
     setIsLoading(prev => ({ ...prev, deleteCategory: true }));
     try {
-      await axios.delete(`/category/deletecategory/${categoryId}`);
+      await axios.delete(`/category/deleteCategory/${categoryId}`, config);
       fetchCategories();
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -309,6 +316,29 @@ const AdminPage = () => {
       setIsLoading(prev => ({ ...prev, deleteCategory: false }));
     }
   };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page on search
+  };
+
+  const handleFilterChange = (e) => {
+    setFilterStatus(e.target.value);
+    setCurrentPage(1); // Reset to first page on filter change
+  };
+
+  const filteredProjects = [...projectsWithoutMentor, ...projectsWithMentor]
+    .filter(project => 
+      project.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      (filterStatus ? project.status === filterStatus : true)
+    );
+
+  const paginatedProjects = filteredProjects.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
 
   const LoadingButton = ({ loading, children, ...props }) => (
     <Button
@@ -331,7 +361,7 @@ const AdminPage = () => {
               {projectsWithoutMentor.length}
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              Mentör Bekleyen Projeler
+              Hakem Bekleyen Projeler
             </Typography>
           </CardContent>
         </Card>
@@ -346,7 +376,7 @@ const AdminPage = () => {
               {mentors.length}
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              Aktif Mentör
+              Aktif Hakem
             </Typography>
           </CardContent>
         </Card>
@@ -373,24 +403,43 @@ const AdminPage = () => {
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Proje - Mentör Atamaları
+          Proje - Hakem Atamaları
         </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+          <TextField
+            label="Proje Ara"
+            variant="outlined"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            sx={{ width: '40%' }}
+          />
+          <FormControl variant="outlined" sx={{ width: '40%' }}>
+            <InputLabel>Durum Filtrele</InputLabel>
+            <Select
+              value={filterStatus}
+              onChange={handleFilterChange}
+              label="Durum Filtrele"
+            >
+              <MenuItem value="">Tümü</MenuItem>
+              <MenuItem value="Devam Ediyor">Devam Ediyor</MenuItem>
+              <MenuItem value="Hakem Bekleniyor">Hakem Bekleniyor</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Proje Adı</TableCell>
-              
-                <TableCell>Mentörler</TableCell>
+                <TableCell>Hakemler</TableCell>
                 <TableCell>Durum</TableCell>
                 <TableCell align="right">İşlem</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {[...projectsWithoutMentor, ...projectsWithMentor].map((project) => (
+              {paginatedProjects.map((project) => (
                 <TableRow key={project.id}>
                   <TableCell>{project.name}</TableCell>
-                  
                   <TableCell>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                       {project.referees && project.referees.length > 0 ? (
@@ -414,7 +463,7 @@ const AdminPage = () => {
                         ))
                       ) : (
                         <Chip
-                          label="Mentör Atanmamış"
+                          label="Hakem Atanmamış"
                           size="small"
                           color="default"
                           variant="outlined"
@@ -423,7 +472,7 @@ const AdminPage = () => {
                     </Box>
                   </TableCell>
                   <TableCell>
-                    {project.referees?.length > 0 ? 'Devam Ediyor' : 'Mentör Bekleniyor'}
+                    {project.referees?.length > 0 ? 'Devam Ediyor' : 'Hakem Bekleniyor'}
                   </TableCell>
                   <TableCell align="right">
                     <LoadingButton
@@ -432,7 +481,7 @@ const AdminPage = () => {
                       size="small"
                       onClick={() => handleAssignMentor(project)}
                     >
-                      Mentör Ata
+                      Hakem Ata
                     </LoadingButton>
                   </TableCell>
                 </TableRow>
@@ -440,6 +489,14 @@ const AdminPage = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={(event, value) => setCurrentPage(value)}
+            color="primary"
+          />
+        </Box>
       </CardContent>
     </Card>
   );
@@ -577,7 +634,7 @@ const AdminPage = () => {
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">
-              Mentör Yönetimi
+              Hakem Yönetimi
             </Typography>
             {!showMentorForm && (
               <Button
@@ -585,7 +642,7 @@ const AdminPage = () => {
                 startIcon={<MentorIcon />}
                 onClick={() => setShowMentorForm(true)}
               >
-                Yeni Mentör Ekle
+                Yeni Hakem Ekle
               </Button>
             )}
           </Box>
@@ -672,7 +729,7 @@ const AdminPage = () => {
       <Card sx={{ mt: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Mentör Durumları
+            Hakem Durumları
           </Typography>
           <TableContainer component={Paper}>
             <Table>
@@ -702,7 +759,7 @@ const AdminPage = () => {
   const renderAssignmentDialog = () => (
     <Dialog open={openAssignDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
       <DialogTitle>
-        Mentör Ata: {selectedProject?.name}
+        Hakem Ata: {selectedProject?.name}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ mt: 2 }}>
@@ -715,7 +772,7 @@ const AdminPage = () => {
           {selectedProject?.referees && selectedProject.referees.length > 0 && (
             <Box sx={{ mb: 3 }}>
               <Typography variant="subtitle2" gutterBottom>
-                Mevcut Mentörler
+                Mevcut Hakemler
               </Typography>
               <List>
                 {selectedProject.referees.map((referee) => (
@@ -750,14 +807,14 @@ const AdminPage = () => {
           )}
 
           <FormControl fullWidth>
-            <InputLabel>Yeni Mentör Seç</InputLabel>
+            <InputLabel>Yeni Hakem Seç</InputLabel>
             <Select
               value={selectedMentor}
               onChange={(e) => {
                 setSelectedMentor(e.target.value);
                 setAssignmentError(null);
               }}
-              label="Yeni Mentör Seç"
+              label="Yeni Hakem Seç"
             >
               {mentors
                 .filter(mentor => 
@@ -788,60 +845,54 @@ const AdminPage = () => {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+        <Card sx={{ flex: 1, mr: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Yönetici Paneli
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
+              <Button
+                variant={activeTab === 'dashboard' ? 'contained' : 'text'}
+                startIcon={<DashboardIcon />}
+                onClick={() => setActiveTab('dashboard')}
+              >
+                Dashboard
+              </Button>
+              <Button
+                variant={activeTab === 'projects' ? 'contained' : 'text'}
+                startIcon={<ProjectIcon />}
+                onClick={() => setActiveTab('projects')}
+              >
+                Proje Atamaları
+              </Button>
+              <Button
+                variant={activeTab === 'mentors' ? 'contained' : 'text'}
+                startIcon={<MentorIcon />}
+                onClick={() => setActiveTab('mentors')}
+              >
+                Hakemler
+              </Button>
+              <Button
+                variant={activeTab === 'categories' ? 'contained' : 'text'}
+                startIcon={<ProjectIcon />}
+                onClick={() => setActiveTab('categories')}
+              >
+                Kategoriler
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
       <Grid container spacing={3}>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Yönetici Paneli
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Button
-                  variant={activeTab === 'dashboard' ? 'contained' : 'text'}
-                  startIcon={<DashboardIcon />}
-                  onClick={() => setActiveTab('dashboard')}
-                  fullWidth
-                >
-                  Dashboard
-                </Button>
-                <Button
-                  variant={activeTab === 'projects' ? 'contained' : 'text'}
-                  startIcon={<ProjectIcon />}
-                  onClick={() => setActiveTab('projects')}
-                  fullWidth
-                >
-                  Proje Atamaları
-                </Button>
-                <Button
-                  variant={activeTab === 'mentors' ? 'contained' : 'text'}
-                  startIcon={<MentorIcon />}
-                  onClick={() => setActiveTab('mentors')}
-                  fullWidth
-                >
-                  Mentörler
-                </Button>
-                <Button
-                  variant={activeTab === 'categories' ? 'contained' : 'text'}
-                  startIcon={<ProjectIcon />}
-                  onClick={() => setActiveTab('categories')}
-                  fullWidth
-                >
-                  Kategoriler
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={9}>
+        <Grid item xs={12}>
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'projects' && renderProjects()}
           {activeTab === 'mentors' && renderMentors()}
           {activeTab === 'categories' && renderCategories()}
         </Grid>
       </Grid>
-
       {renderAssignmentDialog()}
-
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
