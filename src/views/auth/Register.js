@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Grid, Box, Card, TextField, Button, Typography, MenuItem, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
+import { Grid, Box, Card, TextField, Button, Typography, MenuItem, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, CircularProgress } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 const Register = () => {
@@ -7,6 +7,7 @@ const Register = () => {
   const [formData, setFormData] = useState({
     userName: "",
     password: "",
+    confirmPassword: "",
     email: "",
     studentNumber: "",
     faculty: "",
@@ -17,6 +18,7 @@ const Register = () => {
   const [error, setError] = useState({});
   const [open, setOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -29,11 +31,12 @@ const Register = () => {
     const newError = {};
     if (!formData.userName) newError.userName = "Kullanıcı adı gerekli";
     if (!formData.password || formData.password.length < 6) newError.password = "Şifre en az 6 karakter olmalı";
-    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) newError.email = "Geçerli bir e-posta girin";
+    if (formData.password !== formData.confirmPassword) newError.confirmPassword = "Şifreler eşleşmiyor";
+    if (!formData.email || !/\S+@ogr\.inonu\.edu\.tr$/.test(formData.email)) newError.email = "Geçerli bir öğrenci e-posta adresi girin (@ogr.inonu.edu.tr)";
     if (!formData.phoneNumber || !/^[0-9]{11}$/.test(formData.phoneNumber)) newError.phoneNumber = "Telefon numarası 11 haneli olmalı";
     if (!formData.studentNumber || !/^[0-9]{11}$/.test(formData.studentNumber)) newError.studentNumber = "Öğrenci numarası 11 haneli olmalı";
-    if (!formData.faculty) newError.faculty = "Fakülte seçimi gerekli";
-    if (!formData.department) newError.department = "Bölüm seçimi gerekli";
+    if (!formData.faculty) newError.faculty = "Fakülte girişi gerekli";
+    if (!formData.department) newError.department = "Bölüm girişi gerekli";
     if (!formData.classNumber) newError.classNumber = "Sınıf seçimi gerekli";
     return newError;
   };
@@ -48,6 +51,7 @@ const Register = () => {
     setError({});
 
     try {
+      setIsLoading(true);
       const response = await fetch("http://localhost:8080/v1/auth/register", {
         method: "POST",
         headers: {
@@ -77,6 +81,8 @@ const Register = () => {
       console.error("Kayıt işlemi sırasında hata oluştu:", error);
       setPopupMessage("Kayıt işlemi sırasında hata oluştu.");
       setOpen(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -92,15 +98,35 @@ const Register = () => {
         alignItems: "center",
         justifyContent: "center",
         p: 3,
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
       }}
     >
-      <Card sx={{ p: 4, maxWidth: 600, width: "100%" }}>
-        <Typography variant="h4" textAlign="center" mb={4}>
+      <Card 
+        sx={{ 
+          p: 4, 
+          maxWidth: 600, 
+          width: "100%",
+          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          borderRadius: '16px',
+          background: 'rgba(255,255,255,0.95)',
+        }}
+      >
+        <Typography 
+          variant="h4" 
+          textAlign="center" 
+          mb={4}
+          sx={{
+            color: '#2c3e50',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
+          }}
+        >
           Öğrenci Kayıt Formu
         </Typography>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Ad-Soyad"
@@ -110,8 +136,10 @@ const Register = () => {
                 error={!!error.userName}
                 helperText={error.userName}
                 required
+                sx={{ backgroundColor: 'white' }}
               />
             </Grid>
+            
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -123,12 +151,29 @@ const Register = () => {
                 error={!!error.password}
                 helperText={error.password}
                 required
+                sx={{ backgroundColor: 'white' }}
               />
             </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Şifre Tekrar"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                error={!!error.confirmPassword}
+                helperText={error.confirmPassword}
+                required
+                sx={{ backgroundColor: 'white' }}
+              />
+            </Grid>
+
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="E-posta"
+                label="E-posta (@ogr.inonu.edu.tr)"
                 name="email"
                 type="email"
                 value={formData.email}
@@ -136,8 +181,10 @@ const Register = () => {
                 error={!!error.email}
                 helperText={error.email}
                 required
+                sx={{ backgroundColor: 'white' }}
               />
             </Grid>
+
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -147,9 +194,11 @@ const Register = () => {
                 onChange={handleChange}
                 error={!!error.phoneNumber}
                 helperText={error.phoneNumber}
+                sx={{ backgroundColor: 'white' }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Öğrenci Numarası"
@@ -159,11 +208,12 @@ const Register = () => {
                 error={!!error.studentNumber}
                 helperText={error.studentNumber}
                 required
+                sx={{ backgroundColor: 'white' }}
               />
             </Grid>
+
             <Grid item xs={12} sm={6}>
               <TextField
-                select
                 fullWidth
                 label="Fakülte"
                 name="faculty"
@@ -172,15 +222,12 @@ const Register = () => {
                 error={!!error.faculty}
                 helperText={error.faculty}
                 required
-              >
-                <MenuItem value="muhendislik">Mühendislik Fakültesi</MenuItem>
-                <MenuItem value="fen">Fen Fakültesi</MenuItem>
-                <MenuItem value="edebiyat">Edebiyat Fakültesi</MenuItem>
-              </TextField>
+                sx={{ backgroundColor: 'white' }}
+              />
             </Grid>
+
             <Grid item xs={12} sm={6}>
               <TextField
-                select
                 fullWidth
                 label="Bölüm"
                 name="department"
@@ -189,13 +236,11 @@ const Register = () => {
                 error={!!error.department}
                 helperText={error.department}
                 required
-              >
-                <MenuItem value="bilgisayar">Bilgisayar Mühendisliği</MenuItem>
-                <MenuItem value="elektrik">Elektrik-Elektronik Mühendisliği</MenuItem>
-                <MenuItem value="makine">Makine Mühendisliği</MenuItem>
-              </TextField>
+                sx={{ backgroundColor: 'white' }}
+              />
             </Grid>
-            <Grid item xs={12} sm={6}>
+
+            <Grid item xs={12}>
               <TextField
                 select
                 fullWidth
@@ -206,6 +251,7 @@ const Register = () => {
                 error={!!error.classNumber}
                 helperText={error.classNumber}
                 required
+                sx={{ backgroundColor: 'white' }}
               >
                 <MenuItem value="1">1. Sınıf</MenuItem>
                 <MenuItem value="2">2. Sınıf</MenuItem>
@@ -213,22 +259,56 @@ const Register = () => {
                 <MenuItem value="4">4. Sınıf</MenuItem>
               </TextField>
             </Grid>
+
             <Grid item xs={12}>
               <Button
                 type="submit"
                 variant="contained"
-                color="primary"
                 fullWidth
                 size="large"
+                disabled={isLoading}
+                sx={{
+                  mt: 2,
+                  backgroundColor: '#1a73e8',
+                  '&:hover': {
+                    backgroundColor: '#1557b0',
+                  },
+                  height: '48px',
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  fontSize: '16px',
+                  position: 'relative',
+                }}
               >
-                Kayıt Ol
+                {isLoading ? (
+                  <CircularProgress
+                    size={24}
+                    sx={{
+                      color: 'white',
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      marginTop: '-12px',
+                      marginLeft: '-12px',
+                    }}
+                  />
+                ) : (
+                  'Kayıt Ol'
+                )}
               </Button>
             </Grid>
+
             <Grid item xs={12}>
               <Button
                 variant="text"
                 fullWidth
                 onClick={() => navigate("/login")}
+                sx={{
+                  color: '#1a73e8',
+                  '&:hover': {
+                    backgroundColor: 'rgba(26, 115, 232, 0.04)',
+                  },
+                }}
               >
                 Zaten hesabınız var mı? Giriş yapın
               </Button>
@@ -258,5 +338,36 @@ const Register = () => {
     </Box>
   );
 };
+
+const LoadingOverlay = () => (
+  <Box
+    sx={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999,
+    }}
+  >
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 2,
+      }}
+    >
+      <CircularProgress size={60} />
+      <Typography variant="h6" color="primary">
+        Kaydınız işleniyor, lütfen bekleyin...
+      </Typography>
+    </Box>
+  </Box>
+);
 
 export default Register;
