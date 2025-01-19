@@ -107,7 +107,7 @@ const AdminPage = () => {
               id: referee.id,
               refereeId: referee.refereeId,
               name: referee.refereeName,
-              assessment: referee.assessment
+              assessments: referee.assessments
             })) || []
           };
         })
@@ -448,7 +448,7 @@ const AdminPage = () => {
                             key={referee.id}
                             label={referee.name}
                             size="small"
-                            color={referee.assessment ? "success" : "primary"}
+                            color={referee.assessments && referee.assessments.length > 0 ? "success" : "primary"}
                             variant="outlined"
                             onDelete={() => handleRemoveMentor(project.id, referee.refereeId, referee.name)}
                             sx={{ 
@@ -780,7 +780,7 @@ const AdminPage = () => {
                     <ListItemText 
                       primary={referee.name}
                       secondary={
-                        referee.assessment 
+                        referee.assessments && referee.assessments.length > 0
                           ? "Değerlendirme yapılmış" 
                           : "Değerlendirme bekleniyor"
                       }
