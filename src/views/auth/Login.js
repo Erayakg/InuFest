@@ -30,6 +30,7 @@ const Login = () => {
     const [successMessage, setSuccessMessage] = useState('');
     const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
     const [verifyCodeLoading, setVerifyCodeLoading] = useState(false);
+    const [isSendingVerification, setIsSendingVerification] = useState(false);
 
     // Slider için useEffect
     useEffect(() => {
@@ -89,6 +90,7 @@ const Login = () => {
     const handleDialogClose = async (confirm) => {
         setOpen(false); // Pop-up'u kapat
         if (confirm) {
+            setIsSendingVerification(true); // Start spinner
             try {
                 const verificationResponse = await axios.post(
                     "http://localhost:8080/v1/verification/send-email-code",
@@ -97,13 +99,15 @@ const Login = () => {
                 );
 
                 if (verificationResponse.status === 200) {
-                    alert("Doğrulama e-postası gönderildi. Lütfen e-postanızı kontrol edin!");
+                    // Directly navigate to the verify email page
                     navigate("/verify-email", { state: { email: formData.mail } });
                 } else {
                     setError(verificationResponse.data?.message || "Doğrulama işlemi başarısız oldu.");
                 }
             } catch (verificationError) {
                 setError(verificationError.response?.data?.message || "E-posta doğrulama hatası oluştu.");
+            } finally {
+                setIsSendingVerification(false); // Ensure spinner stops
             }
         }
     };
@@ -219,8 +223,28 @@ const Login = () => {
                 flexDirection: "column",
                 alignItems: "center",
                 backgroundColor: "#f5f5f5",
+                position: "relative" // Added for overlay positioning
             }}
         >
+            {isSendingVerification && (
+                <Box
+                    sx={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        backgroundColor: "rgba(255, 255, 255, 0.7)",
+                        zIndex: 1000
+                    }}
+                >
+                    <CircularProgress size={60} />
+                </Box>
+            )}
+
             {/* Logo ve Başlık Container */}
             <Box 
                 sx={{
@@ -544,8 +568,13 @@ const Login = () => {
                     <Button onClick={() => handleDialogClose(false)} color="primary">
                         İptal
                     </Button>
-                    <Button onClick={() => handleDialogClose(true)} color="primary" autoFocus>
-                        Gönder
+                    <Button 
+                        onClick={() => handleDialogClose(true)} 
+                        color="primary" 
+                        autoFocus
+                        disabled={isSendingVerification}
+                    >
+                        {isSendingVerification ? <CircularProgress size={24} color="inherit" /> : "Gönder"}
                     </Button>
                 </DialogActions>
             </Dialog>

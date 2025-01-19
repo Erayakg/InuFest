@@ -73,24 +73,22 @@ const Sidebar = (props) => {
       p: 3,
       height: "100vh",
     }}>
-      <Link to="/">
-        <Box sx={{ 
-          display: "flex", 
-          alignItems: "Center",
-          justifyContent: "center",
-          mb: 2
-        }}>
-          <img 
-            src={logoInonu} 
-            alt="İnönü Üniversitesi Logo" 
-            style={{
-              width: '140px',
-              height: 'auto',
-              maxWidth: '100%'
-            }}
-          />
-        </Box>
-      </Link>
+      <Box sx={{ 
+        display: "flex", 
+        alignItems: "Center",
+        justifyContent: "center",
+        mb: 2
+      }}>
+        <img 
+          src={logoInonu} 
+          alt="İnönü Üniversitesi Logo" 
+          style={{
+            width: '140px',
+            height: 'auto',
+            maxWidth: '100%'
+          }}
+        />
+      </Box>
 
       <Box>
         <List>
