@@ -247,7 +247,7 @@ const Profile = () => {
                 )}
               </Box>
 
-              <Grid container spacing={4}>
+              <Grid container spacing={6}>
                 <Grid item xs={12} sm={6}>
                   <Box sx={{ 
                     display: 'flex', 
@@ -287,6 +287,65 @@ const Profile = () => {
                     p: 2,
                     borderRadius: '12px'
                   }}>
+                    <BadgeIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
+                    {isEditing ? (
+                      <TextField
+                        fullWidth
+                        name="faculty"
+                        label="Fakülte"
+                        value={editData.faculty}
+                        onChange={handleChange}
+                        variant="outlined"
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: '#fff'
+                          }
+                        }}
+                      />
+                    ) : (
+                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.faculty}</Typography>
+                    )}
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 2,
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                    p: 2,
+                    borderRadius: '12px'
+                  }}>
+                    <BadgeIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
+                    {isEditing ? (
+                      <TextField
+                        fullWidth
+                        name="department"
+                        label="Bölüm"
+                        value={editData.department}
+                        onChange={handleChange}
+                        variant="outlined"
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: '#fff'
+                          }
+                        }}
+                      />
+                    ) : (
+                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.department}</Typography>
+                    )}
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 2,
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                    p: 2,
+                    borderRadius: '12px'
+                  }}>
                     <SchoolIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
                     {isEditing ? (
                       <TextField
@@ -308,6 +367,40 @@ const Profile = () => {
                   </Box>
                 </Grid>
 
+               
+                
+
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 2,
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                    p: 2,
+                    borderRadius: '12px'
+                  }}>
+                    <PhoneIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
+                    {isEditing ? (
+                      <TextField
+                        fullWidth
+                        name="phoneNumber"
+                        label="Telefon"
+                        value={editData.phoneNumber}
+                        onChange={handleChange}
+                        variant="outlined"
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: '#fff'
+                          }
+                        }}
+                      />
+                      
+                      
+                    ) : (
+                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.phoneNumber}</Typography>
+                    )}
+                  </Box>
+                </Grid>
                 <Grid item xs={12} sm={6}>
                   <Box sx={{ 
                     display: 'flex', 
@@ -334,36 +427,6 @@ const Profile = () => {
                       />
                     ) : (
                       <Typography sx={{ fontSize: '1.1rem' }}>{userData.email}</Typography>
-                    )}
-                  </Box>
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    mb: 2,
-                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                    p: 2,
-                    borderRadius: '12px'
-                  }}>
-                    <PhoneIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
-                    {isEditing ? (
-                      <TextField
-                        fullWidth
-                        name="phoneNumber"
-                        label="Telefon"
-                        value={editData.phoneNumber}
-                        onChange={handleChange}
-                        variant="outlined"
-                        sx={{ 
-                          '& .MuiOutlinedInput-root': {
-                            backgroundColor: '#fff'
-                          }
-                        }}
-                      />
-                    ) : (
-                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.phoneNumber}</Typography>
                     )}
                   </Box>
                 </Grid>
