@@ -55,7 +55,7 @@ const Login = () => {
         setError(null);
         setIsLoading(true);
         try {
-            const response = await axios.post("http://localhost:8080/v1/auth/login", {
+            const response = await axios.post("/v1/auth/login", {
                 mail: formData.mail,
                 password: formData.password,
             });
@@ -93,7 +93,7 @@ const Login = () => {
             setIsSendingVerification(true); // Start spinner
             try {
                 const verificationResponse = await axios.post(
-                    "http://localhost:8080/v1/verification/send-email-code",
+                    "/v1/verification/send-email-code",
                     null,
                     { params: { email: formData.mail } }
                 );

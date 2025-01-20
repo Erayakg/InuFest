@@ -52,7 +52,7 @@ const Register = () => {
 
     try {
       setIsLoading(true);
-      const response = await fetch("http://localhost:8080/v1/auth/register", {
+      const response = await fetch("/v1/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,7 +63,7 @@ const Register = () => {
       const data = await response.json();
 
       if (response.ok) {
-        const sendCodeResponse = await fetch(`http://localhost:8080/v1/verification/send-email-code?email=${formData.email}`, {
+        const sendCodeResponse = await fetch(`/v1/verification/send-email-code?email=${formData.email}`, {
           method: "POST",
         });
 

@@ -25,7 +25,7 @@ const VerifyEmail = () => {
         e.preventDefault();
         try {
             const response = await fetch(
-                `http://localhost:8080/v1/verification/verify-email-code?email=${email}&code=${code}`,
+                `/v1/verification/verify-email-code?email=${email}&code=${code}`,
                 {
                     method: "POST",
                     headers: {
@@ -58,7 +58,7 @@ const VerifyEmail = () => {
         setIsResendDisabled(true);
         setResendTimer(300); // Set 5 minutes (300 seconds) cooldown
         try {
-            const response = await fetch(`http://localhost:8080/v1/verification/send-email-code?email=${email}`, {
+            const response = await fetch(`/v1/verification/send-email-code?email=${email}`, {
                 method: "POST",
             });
             if (!response.ok) {
