@@ -111,31 +111,44 @@ const ProjectList = () => {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get(`/v1/project-referees`, {
-          headers: { 
+          headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
-
+  
+        // Proje ID'lere göre gruplama ve ortalama hesaplama
         const scores = {};
-        response.data.forEach(project => {
-          if (project.assessments && project.assessments.length > 0) {
-            const totalScore = project.assessments.reduce((acc, assessment) => acc + assessment.score, 0);
-            scores[project.projectId] = totalScore / project.assessments.length;
-          } else {
-            scores[project.projectId] = 0;
+        response.data.forEach((item) => {
+          const { projectId, assessments } = item;
+  
+          if (!scores[projectId]) {
+            scores[projectId] = { totalScore: 0, count: 0 };
+          }
+  
+          if (assessments && assessments.length > 0) {
+            assessments.forEach((assessment) => {
+              scores[projectId].totalScore += assessment.score;
+              scores[projectId].count += 1;
+            });
           }
         });
-
-        setAverageScores(scores);
+  
+        // Ortalama puanları hesapla
+        const averageScores = {};
+        Object.keys(scores).forEach((projectId) => {
+          const { totalScore, count } = scores[projectId];
+          averageScores[projectId] = count > 0 ? totalScore / count : 0;
+        });
+  
+        setAverageScores(averageScores);
       } catch (err) {
-        console.error('Error fetching average scores:', err);
+        console.error('Ortalama puanlar alınırken bir hata oluştu:', err);
       }
     };
-
+  
     fetchAverageScores();
   }, []);
-
   // Filtering and Sorting Logic
   const filteredAndSortedProjects = React.useMemo(() => {
     return [...projects]
@@ -362,9 +375,9 @@ const ProjectList = () => {
                 {project.name}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <StarIcon color="primary" fontSize="small" />
+                <StarIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
                 <Typography variant="body2" color="textSecondary">
-                  Ortalama Puan: {(averageScores[project.id] || 0).toFixed(2)}
+                  {(averageScores[project.id] || 0).toFixed(2)}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -441,11 +454,8 @@ const ProjectList = () => {
               <TableCell>{project.name}</TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <StarIcon 
-                    fontSize="small" 
-                    sx={{ color: theme.palette.warning.main }}
-                  />
-                  {(averageScores[project.id] || 0).toFixed(2)}
+                <StarIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
+                {(averageScores[project.id] || 0).toFixed(2)}
                 </Box>
               </TableCell>
               <TableCell>
