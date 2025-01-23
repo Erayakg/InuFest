@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Link, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   Box,
   Drawer,
@@ -9,169 +9,193 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  IconButton,
+  styled,
+  useTheme,
+  Collapse,
+  Divider,
 } from "@mui/material";
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { SidebarWidth } from "../../../assets/global/Theme-variable";
 import Menuitems from "./data";
 import axios from "axios";
 import logoInonu from '../../../assets/images/logo-inonu.png';
 
-const Sidebar = (props) => {
-  const [open, setOpen] = React.useState(true);
-  const { pathname } = useLocation();
-  const pathDirect = pathname;
-  const lgUp = useMediaQuery((theme) => theme.breakpoints.up("lg"));
-  const navigate = useNavigate();
+// Styled components
+const DrawerHeader = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: theme.spacing(0, 1),
+  ...theme.mixins.toolbar,
+}));
 
-  const handleClick = (index) => {
-    if (open === index) {
-      setOpen((prevopen) => !prevopen);
-    } else {
-      setOpen(index);
-    }
-  };
+const StyledListItem = styled(ListItem)(({ theme, selected }) => ({
+  marginBottom: theme.spacing(1),
+  borderRadius: theme.spacing(1),
+  '&:hover': {
+    backgroundColor: theme.palette.action.hover,
+  },
+  ...(selected && {
+    color: 'white',
+    backgroundColor: `${theme.palette.primary.main}!important`,
+    '&:hover': {
+      backgroundColor: theme.palette.primary.dark,
+    },
+    '& .MuiListItemIcon-root': {
+      color: 'white',
+    },
+  }),
+}));
+
+const LogoWrapper = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: theme.spacing(2),
+  '& img': {
+    width: '140px',
+    height: 'auto',
+    maxWidth: '100%',
+    transition: 'transform 0.3s ease-in-out',
+    '&:hover': {
+      transform: 'scale(1.05)',
+    },
+  },
+}));
+
+const Sidebar = ({ isSidebarOpen, isMobileSidebarOpen, onSidebarClose }) => {
+  const [activeItem, setActiveItem] = useState('');
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const lgUp = useMediaQuery(theme.breakpoints.up('lg'));
+
+  // Update active item when pathname changes
+  useEffect(() => {
+    setActiveItem(pathname);
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('token');
-      
-      // Önce backend'e logout isteği at
       const response = await axios.post(`http://localhost:8080/v1/auth/logout/${token}`);
       
-      // Backend isteği başarılı olduysa
       if (response.status === 200) {
-        // localStorage'ı temizle
         localStorage.clear();
-        // Login sayfasına yönlendir
         navigate('/login');
       }
-      
     } catch (error) {
       console.error('Logout error:', error);
-      // Hata durumunda kullanıcıya bilgi verilebilir
       alert('Çıkış yapılırken bir hata oluştu!');
     }
   };
 
-  // Menü öğelerini filtreleme
-  const filteredMenuItems = React.useMemo(() => {
+  const filteredMenuItems = useMemo(() => {
     const token = localStorage.getItem('token');
     const userRole = localStorage.getItem('role');
 
     return Menuitems.filter(item => {
-      // Kullanıcı giriş yapmışsa (token varsa)
       if (token) {
-        // guest rolüne sahip öğeleri gösterme (giriş yap, kayıt ol gibi)
         return !item.roles.includes('guest') && item.roles.includes(userRole);
       }
-      // Kullanıcı giriş yapmamışsa sadece guest rolüne sahip öğeleri göster
       return item.roles.includes('guest');
     });
-  }, []); // Component mount olduğunda bir kere çalışır
+  }, []);
 
   const SidebarContent = (
     <Box sx={{ 
-      p: 3,
-      height: "100vh",
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
     }}>
+      <DrawerHeader>
+        <LogoWrapper>
+          <img 
+            src={logoInonu} 
+            alt="İnönü Üniversitesi Logo"
+          />
+        </LogoWrapper>
+        {!lgUp && (
+          <IconButton 
+            onClick={onSidebarClose}
+            sx={{
+              fontSize: '1.5rem',
+            }}
+          >
+            <ChevronLeftIcon 
+              sx={{
+                fontSize: '2rem',
+              }}
+            />
+          </IconButton>
+        )}
+      </DrawerHeader>
+
+      <Divider />
+
       <Box sx={{ 
-        display: "flex", 
-        alignItems: "Center",
-        justifyContent: "center",
-        mb: 2
+        flexGrow: 1,
+        px: 2,
+        py: 3,
+        overflowY: 'auto',
       }}>
-        <img 
-          src={logoInonu} 
-          alt="İnönü Üniversitesi Logo" 
-          style={{
-            width: '140px',
-            height: 'auto',
-            maxWidth: '100%'
-          }}
-        />
-      </Box>
-
-      <Box>
         <List>
-          {filteredMenuItems.map((item, index) => {
-            if (item.href === '/logout') {
-              return (
-                <ListItem
-                  key={item.title}
-                  button
-                  onClick={handleLogout}
-                  sx={{
-                    mb: 1,
-                    "&:hover": {
-                      backgroundColor: "rgba(0,0,0,0.04)",
-                    },
-                  }}
-                >
-                  <ListItemIcon>
-                    <item.icon />
-                  </ListItemIcon>
-                  <ListItemText primary={item.title} />
-                </ListItem>
-              );
-            }
-
-            return (
-              <ListItem
-                key={item.title}
-                button
-                component={NavLink}
-                to={item.href}
-                selected={pathDirect === item.href}
+          {filteredMenuItems.map((item) => (
+            <StyledListItem
+              key={item.title}
+              button
+              selected={activeItem === item.href}
+              onClick={item.href === '/logout' ? handleLogout : undefined}
+              component={item.href === '/logout' ? 'div' : NavLink}
+              to={item.href === '/logout' ? undefined : item.href}
+              sx={{
+                transition: 'all 0.2s ease-in-out',
+              }}
+            >
+              <ListItemIcon
                 sx={{
-                  mb: 1,
-                  ...(pathDirect === item.href && {
-                    color: "white",
-                    backgroundColor: (theme) =>
-                      `${theme.palette.primary.main}!important`,
-                  }),
+                  minWidth: '40px',
+                  color: activeItem === item.href ? 'white' : 'inherit',
                 }}
               >
-                <ListItemIcon
-                  sx={{
-                    ...(pathDirect === item.href && { color: "white" }),
-                  }}
-                >
-                  <item.icon />
-                </ListItemIcon>
-                <ListItemText primary={item.title} />
-              </ListItem>
-            );
-          })}
+                <item.icon />
+              </ListItemIcon>
+              <ListItemText 
+                primary={item.title}
+                sx={{
+                  '& .MuiTypography-root': {
+                    fontWeight: activeItem === item.href ? 600 : 400,
+                  },
+                }}
+              />
+            </StyledListItem>
+          ))}
         </List>
       </Box>
     </Box>
   );
-  if (lgUp) {
-    return (
-      <Drawer
-        anchor="left"
-        open={props.isSidebarOpen}
-        variant="persistent"
-        PaperProps={{
-          sx: {
-            width: SidebarWidth,
-          },
-        }}
-      >
-        {SidebarContent}
-      </Drawer>
-    );
-  }
+
   return (
     <Drawer
       anchor="left"
-      open={props.isMobileSidebarOpen}
-      onClose={props.onSidebarClose}
+      open={lgUp ? isSidebarOpen : isMobileSidebarOpen}
+      onClose={onSidebarClose}
+      variant={lgUp ? "persistent" : "temporary"}
       PaperProps={{
         sx: {
           width: SidebarWidth,
+          border: 'none',
+          boxShadow: theme.shadows[8],
+          transition: theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         },
       }}
-      variant="temporary"
+      ModalProps={{
+        keepMounted: true,
+      }}
     >
       {SidebarContent}
     </Drawer>

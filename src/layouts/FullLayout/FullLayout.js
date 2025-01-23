@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   experimentalStyled,
   useMediaQuery,
@@ -36,15 +36,31 @@ const FullLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up("lg"));
+
+  useEffect(() => {
+    if (!lgUp) {
+      setSidebarOpen(false);
+    }
+  }, [lgUp]);
+
+  const toggleSidebar = () => {
+    if (lgUp) {
+      setSidebarOpen(!isSidebarOpen);
+    } else {
+      setMobileSidebarOpen(!isMobileSidebarOpen);
+    }
+  };
+
   return (
     <MainWrapper>
       <Header
         sx={{
           paddingLeft: isSidebarOpen && lgUp ? "265px" : "",
           backgroundColor: "#ffffff",
+          paddingRight: lgUp ? "" : "16px",
         }}
-        toggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
-        toggleMobileSidebar={() => setMobileSidebarOpen(true)}
+        toggleSidebar={toggleSidebar}
+        isSidebarOpen={isSidebarOpen}
       />
 
       <Sidebar
@@ -59,6 +75,7 @@ const FullLayout = () => {
           sx={{
             paddingTop: "20px",
             paddingLeft: isSidebarOpen && lgUp ? "280px!important" : "",
+            paddingRight: lgUp ? "" : "16px",
           }}
         >
           <Box sx={{ minHeight: "calc(100vh - 170px)" }}>

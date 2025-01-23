@@ -144,7 +144,7 @@ const AdminPage = () => {
     try {
       const response = await axios.get('/referee', config);
       setMentors(response.data.data);
-      console.log(response.data.data);
+      
     } catch (error) {
       console.error('Error fetching mentors:', error);
     }
@@ -219,7 +219,7 @@ const AdminPage = () => {
   };
 
   const handleRemoveMentor = async (projectId, refereeId, refereeName) => {
-    console.log('Removing mentor with params:', { projectId, refereeId, refereeName });
+    
     
     if (window.confirm(`${refereeName} isimli hakemü projeden silmek istediğinize emin misiniz?`)) {
       setIsLoading(prev => ({ ...prev, removeMentor: true }));
@@ -308,10 +308,23 @@ const AdminPage = () => {
   const handleDeleteCategory = async (categoryId) => {
     setIsLoading(prev => ({ ...prev, deleteCategory: true }));
     try {
-      await axios.delete(`/category/deleteCategory/${categoryId}`, config);
+      const response = await axios.delete(`/category/deleteCategory/${categoryId}`, config);
+      const message = response.data.data;
+      setSnackbar({
+        open: true,
+        message: message,
+        severity: 'success'
+      });
       fetchCategories();
+     
     } catch (error) {
+      
       console.error('Error deleting category:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Kategori silinirken bir hata oluştu',
+        severity: 'error'
+      });
     } finally {
       setIsLoading(prev => ({ ...prev, deleteCategory: false }));
     }
@@ -353,14 +366,14 @@ const AdminPage = () => {
     <Grid container spacing={3}>
       <Grid item xs={12} md={4}>
         <Card>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ width: 60, height: 60, margin: '0 auto 16px auto', bgcolor: 'success.main' }}>
+          <CardContent sx={{ textAlign: 'center', p: { xs: 2, md: 3 } }}>
+            <Avatar sx={{ width: { xs: 40, md: 60 }, height: { xs: 40, md: 60 }, margin: '0 auto 16px auto', bgcolor: 'success.main' }}>
               <ProjectIcon />
             </Avatar>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.5rem', md: '2rem' } }}>
               {projectsWithoutMentor.length}
             </Typography>
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
               Hakem Bekleyen Projeler
             </Typography>
           </CardContent>
@@ -368,14 +381,14 @@ const AdminPage = () => {
       </Grid>
       <Grid item xs={12} md={4}>
         <Card>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ width: 60, height: 60, margin: '0 auto 16px auto', bgcolor: 'warning.main' }}>
+          <CardContent sx={{ textAlign: 'center', p: { xs: 2, md: 3 } }}>
+            <Avatar sx={{ width: { xs: 40, md: 60 }, height: { xs: 40, md: 60 }, margin: '0 auto 16px auto', bgcolor: 'warning.main' }}>
               <MentorIcon />
             </Avatar>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.5rem', md: '2rem' } }}>
               {mentors.length}
             </Typography>
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
               Aktif Hakem
             </Typography>
           </CardContent>
@@ -383,14 +396,14 @@ const AdminPage = () => {
       </Grid>
       <Grid item xs={12} md={4}>
         <Card>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ width: 60, height: 60, margin: '0 auto 16px auto', bgcolor: 'primary.main' }}>
+          <CardContent sx={{ textAlign: 'center', p: { xs: 2, md: 3 } }}>
+            <Avatar sx={{ width: { xs: 40, md: 60 }, height: { xs: 40, md: 60 }, margin: '0 auto 16px auto', bgcolor: 'primary.main' }}>
               <ProjectIcon />
             </Avatar>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.5rem', md: '2rem' } }}>
               {projectsWithMentor.length}
             </Typography>
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
               Devam Eden Projeler
             </Typography>
           </CardContent>
@@ -402,18 +415,18 @@ const AdminPage = () => {
   const renderProjects = () => (
     <Card>
       <CardContent>
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
           Proje - Hakem Atamaları
         </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', mb: 2 }}>
           <TextField
             label="Proje Ara"
             variant="outlined"
             value={searchQuery}
             onChange={handleSearchChange}
-            sx={{ width: '40%' }}
+            sx={{ width: { xs: '100%', md: '40%' }, mb: { xs: 2, md: 0 } }}
           />
-          <FormControl variant="outlined" sx={{ width: '40%' }}>
+          <FormControl variant="outlined" sx={{ width: { xs: '100%', md: '40%' } }}>
             <InputLabel>Durum Filtrele</InputLabel>
             <Select
               value={filterStatus}
@@ -844,18 +857,19 @@ const AdminPage = () => {
   );
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Card sx={{ flex: 1, mr: 2 }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', mb: 3 }}>
+        <Card sx={{ flex: 1, mr: { xs: 0, md: 2 }, mb: { xs: 2, md: 0 } }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
               Yönetici Paneli
             </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-around' }}>
               <Button
                 variant={activeTab === 'dashboard' ? 'contained' : 'text'}
                 startIcon={<DashboardIcon />}
                 onClick={() => setActiveTab('dashboard')}
+                sx={{ mb: { xs: 1, md: 0 } }}
               >
                 Dashboard
               </Button>
@@ -863,6 +877,7 @@ const AdminPage = () => {
                 variant={activeTab === 'projects' ? 'contained' : 'text'}
                 startIcon={<ProjectIcon />}
                 onClick={() => setActiveTab('projects')}
+                sx={{ mb: { xs: 1, md: 0 } }}
               >
                 Proje Atamaları
               </Button>
@@ -870,6 +885,7 @@ const AdminPage = () => {
                 variant={activeTab === 'mentors' ? 'contained' : 'text'}
                 startIcon={<MentorIcon />}
                 onClick={() => setActiveTab('mentors')}
+                sx={{ mb: { xs: 1, md: 0 } }}
               >
                 Hakemler
               </Button>
@@ -877,6 +893,7 @@ const AdminPage = () => {
                 variant={activeTab === 'categories' ? 'contained' : 'text'}
                 startIcon={<ProjectIcon />}
                 onClick={() => setActiveTab('categories')}
+                sx={{ mb: { xs: 1, md: 0 } }}
               >
                 Kategoriler
               </Button>

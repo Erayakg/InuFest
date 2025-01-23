@@ -142,10 +142,10 @@ const Profile = () => {
   if (error) return <div>{error}</div>;
 
   return (
-    <Box sx={{ p: 3, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
       <Grid container spacing={3}>
         {/* Profil Kartı */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={12} md={4}>
           <Card sx={{ 
             boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
             borderRadius: '16px',
@@ -154,13 +154,13 @@ const Profile = () => {
               transform: 'translateY(-5px)'
             }
           }}>
-            <CardContent sx={{ textAlign: 'center', p: 4 }}>
+            <CardContent sx={{ textAlign: 'center', p: { xs: 3, md: 4 } }}>
               <Avatar
                 sx={{
-                  width: 120,
-                  height: 120,
+                  width: { xs: 80, md: 120 },
+                  height: { xs: 80, md: 120 },
                   margin: '0 auto 24px auto',
-                  fontSize: '2.5rem',
+                  fontSize: { xs: '2rem', md: '2.5rem' },
                   bgcolor: 'primary.main',
                   border: '4px solid #fff',
                   boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
@@ -168,13 +168,13 @@ const Profile = () => {
               >
                 {userData.username ? userData.username.charAt(0).toUpperCase() : 'U'}
               </Avatar>
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', md: '2rem' } }}>
                 {userData.username}
               </Typography>
-              <Typography variant="body1" color="primary" gutterBottom sx={{ mb: 1 }}>
+              <Typography variant="body1" color="primary" gutterBottom sx={{ mb: 1, fontSize: { xs: '1rem', md: '1.25rem' } }}>
                 {userData.role}
               </Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 3, fontSize: { xs: '0.875rem', md: '1rem' } }}>
                 {userData.department}
               </Typography>
               {!isEditing && (
@@ -184,8 +184,8 @@ const Profile = () => {
                   sx={{ 
                     mt: 2,
                     borderRadius: '25px',
-                    px: 3,
-                    py: 1,
+                    px: { xs: 2, md: 3 },
+                    py: { xs: 0.5, md: 1 },
                     textTransform: 'none',
                     boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
                   }}
@@ -199,12 +199,12 @@ const Profile = () => {
         </Grid>
 
         {/* Detay Kartı */}
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} sm={12} md={8}>
           <Card sx={{ 
             boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
             borderRadius: '16px'
           }}>
-            <CardContent sx={{ p: 4 }}>
+            <CardContent sx={{ p: { xs: 3, md: 4 } }}>
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
@@ -213,7 +213,7 @@ const Profile = () => {
                 borderBottom: '2px solid #f0f0f0',
                 pb: 2
               }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
                   Kişisel Bilgiler
                 </Typography>
                 {isEditing && (
@@ -247,7 +247,7 @@ const Profile = () => {
                 )}
               </Box>
 
-              <Grid container spacing={6}>
+              <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <Box sx={{ 
                     display: 'flex', 
@@ -273,7 +273,7 @@ const Profile = () => {
                         }}
                       />
                     ) : (
-                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.username}</Typography>
+                      <Typography sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }}>{userData.username}</Typography>
                     )}
                   </Box>
                 </Grid>
@@ -303,7 +303,7 @@ const Profile = () => {
                         }}
                       />
                     ) : (
-                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.faculty}</Typography>
+                      <Typography sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }}>{userData.faculty}</Typography>
                     )}
                   </Box>
                 </Grid>
@@ -332,7 +332,7 @@ const Profile = () => {
                         }}
                       />
                     ) : (
-                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.department}</Typography>
+                      <Typography sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }}>{userData.department}</Typography>
                     )}
                   </Box>
                 </Grid>
@@ -362,13 +362,10 @@ const Profile = () => {
                         }}
                       />
                     ) : (
-                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.studentNumber}</Typography>
+                      <Typography sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }}>{userData.studentNumber}</Typography>
                     )}
                   </Box>
                 </Grid>
-
-               
-                
 
                 <Grid item xs={12} sm={6}>
                   <Box sx={{ 
@@ -394,10 +391,8 @@ const Profile = () => {
                           }
                         }}
                       />
-                      
-                      
                     ) : (
-                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.phoneNumber}</Typography>
+                      <Typography sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }}>{userData.phoneNumber}</Typography>
                     )}
                   </Box>
                 </Grid>
@@ -426,7 +421,7 @@ const Profile = () => {
                         }}
                       />
                     ) : (
-                      <Typography sx={{ fontSize: '1.1rem' }}>{userData.email}</Typography>
+                      <Typography sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }}>{userData.email}</Typography>
                     )}
                   </Box>
                 </Grid>

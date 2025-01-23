@@ -387,9 +387,9 @@ const ProjectDetail = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Paper elevation={0} sx={{ p: 3, mb: 3, bgcolor: 'primary.main', color: 'white' }}>
-        <Typography variant="h4" gutterBottom>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
+      <Paper elevation={0} sx={{ p: { xs: 2, md: 3 }, mb: 3, bgcolor: 'primary.main', color: 'white' }}>
+        <Typography variant={{ xs: 'h5', md: 'h4' }} gutterBottom>
           {project?.name}
         </Typography>
       </Paper>
@@ -434,7 +434,6 @@ const ProjectDetail = () => {
                       <Button
                         variant="contained"
                         color="primary"
-                        
                         onClick={handleDownload}
                         disabled={downloadLoading}
                         sx={{ mt: 1 }}
