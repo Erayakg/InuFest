@@ -5,19 +5,18 @@ import {
   IconButton,
   styled,
   useTheme,
-  useMediaQuery,
   Box,
   Typography,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
-import logoInonu from '../../../assets/images/logo-inonu.png';
+import { useNavigate } from "react-router-dom";
 
 // Styled components
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
-  backgroundColor: theme.palette.grey[100], // Daha modern ve nötr bir arka plan rengi
+  backgroundColor: theme.palette.grey[100],
   color: theme.palette.text.primary,
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)', // Hafif gölge efekti
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   borderBottom: `1px solid ${theme.palette.divider}`,
   transition: theme.transitions.create(['width', 'margin'], {
     easing: theme.transitions.easing.sharp,
@@ -25,34 +24,17 @@ const StyledAppBar = styled(AppBar)(({ theme }) => ({
   }),
 }));
 
-const LogoContainer = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(2),
-  '& img': {
-    height: '40px',
-    width: 'auto',
-  },
-}));
-
 const Header = ({ sx, customClass, toggleSidebar, isSidebarOpen }) => {
   const theme = useTheme();
-  const lgUp = useMediaQuery(theme.breakpoints.up('lg'));
+  const navigate = useNavigate();
 
   return (
-    <StyledAppBar 
-      position="fixed" 
-      sx={sx} 
-      elevation={0} 
-      className={customClass}
-    >
-      <Toolbar
-        sx={{
-          justifyContent: 'space-between',
-          minHeight: { xs: '64px', lg: '70px' },
-          px: { xs: 2, lg: 4 },
-        }}
-      >
+    <StyledAppBar position="fixed" sx={sx} elevation={0} className={customClass}>
+      <Toolbar sx={{
+        justifyContent: 'space-between',
+        minHeight: { xs: '64px', lg: '70px' },
+        px: { xs: 2, lg: 4 },
+      }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <IconButton
             color="inherit"
@@ -61,40 +43,16 @@ const Header = ({ sx, customClass, toggleSidebar, isSidebarOpen }) => {
             edge="start"
             sx={{
               mr: 2,
-              display: 'flex',
-              transition: theme.transitions.create('transform', {
-                duration: theme.transitions.duration.shorter,
-              }),
               transform: isSidebarOpen ? 'rotate(180deg)' : 'none',
+              transition: theme.transitions.create('transform'),
             }}
           >
             {isSidebarOpen ? <MenuOpenIcon /> : <MenuIcon />}
           </IconButton>
 
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 600,
-              color: theme.palette.primary.main,
-            }}
-          >
+          <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
             İNÜFEST Proje Yönetim Sistemi
           </Typography>
-        </Box>
-
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center',
-          gap: 2 
-        }}>
-          {/* Sağ tarafta ek menü öğeleri veya profil butonu eklenebilir */}
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            gap: 1
-          }}>
-            {/* Buraya profil menüsü, bildirimler vb. eklenebilir */}
-          </Box>
         </Box>
       </Toolbar>
     </StyledAppBar>

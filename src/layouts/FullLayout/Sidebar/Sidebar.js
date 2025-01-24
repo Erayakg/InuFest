@@ -15,12 +15,19 @@ import {
   Collapse,
   Divider,
   Typography,
+  Badge,
+  Chip,
 } from "@mui/material";
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { SidebarWidth } from "../../../assets/global/Theme-variable";
 import Menuitems from "./data";
 import axios from "axios";
 import logoInonu from '../../../assets/images/logo-inonu.png';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import FolderIcon from '@mui/icons-material/Folder';
+import PeopleIcon from '@mui/icons-material/People';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import LayersIcon from '@mui/icons-material/Layers';
 
 // Styled components
 const DrawerHeader = styled('div')(({ theme }) => ({
@@ -96,6 +103,7 @@ const Sidebar = ({ isSidebarOpen, isMobileSidebarOpen, onSidebarClose }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const lgUp = useMediaQuery(theme.breakpoints.up('lg'));
+  const userRole = localStorage.getItem('role');
 
   // Update active item when pathname changes
   useEffect(() => {
@@ -155,15 +163,30 @@ const Sidebar = ({ isSidebarOpen, isMobileSidebarOpen, onSidebarClose }) => {
         )}
       </DrawerHeader>
 
-      <Divider sx={{ my: 2 }} />
+      <Divider sx={{ mb: 2 }} />
+
+      <Box sx={{ px: 2 }}>
+        <Chip
+          label={`${userRole === 'ADMIN' ? 'Yönetici' : userRole === 'REFEREE' ? 'Hakem' : 'Kullanıcı'} Paneli`}
+          color="primary"
+          variant="outlined"
+          sx={{ width: '100%', justifyContent: 'center' }}
+        />
+      </Box>
 
       <Box sx={{ 
         flexGrow: 1,
         px: 2,
-        py: 3,
-        overflowY: 'auto',
+        mt: 3,
+        height: 'calc(100vh - 300px)', // Logo ve alt kısım için alan bırakıyoruz
+        display: 'flex',
+        flexDirection: 'column',
       }}>
-        <List>
+        <List sx={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1, // Menu itemler arası boşluk
+        }}>
           {filteredMenuItems.map((item) => (
             <StyledListItem
               key={item.title}
@@ -174,6 +197,7 @@ const Sidebar = ({ isSidebarOpen, isMobileSidebarOpen, onSidebarClose }) => {
               to={item.href === '/logout' ? undefined : item.href}
               sx={{
                 transition: 'all 0.2s ease-in-out',
+                mb: 0, // Margin bottom'ı kaldırdık çünkü gap kullanıyoruz
               }}
             >
               <ListItemIcon
@@ -182,19 +206,50 @@ const Sidebar = ({ isSidebarOpen, isMobileSidebarOpen, onSidebarClose }) => {
                   color: activeItem === item.href ? 'white' : 'inherit',
                 }}
               >
-                <item.icon />
+                {item.badge ? (
+                  <Badge badgeContent={item.badge} color="error">
+                    <item.icon />
+                  </Badge>
+                ) : (
+                  <item.icon />
+                )}
               </ListItemIcon>
               <ListItemText 
                 primary={item.title}
+                secondary={item.subtitle}
                 sx={{
                   '& .MuiTypography-root': {
                     fontWeight: activeItem === item.href ? 600 : 400,
                   },
                 }}
               />
+              {item.chip && (
+                <Chip
+                  label={item.chip}
+                  size="small"
+                  color={item.chipColor || "default"}
+                  sx={{ ml: 1 }}
+                />
+              )}
             </StyledListItem>
           ))}
         </List>
+      </Box>
+
+      <Box sx={{ 
+        mt: 'auto', // Alt kısmı en alta sabitler
+        pt: 2,
+        borderTop: `1px solid ${theme.palette.divider}`,
+      }}>
+        <Typography 
+          variant="caption" 
+          color="textSecondary" 
+          align="center" 
+          display="block"
+          sx={{ p: 2 }}
+        >
+          © 2024 İnönü Üniversitesi
+        </Typography>
       </Box>
     </Box>
   );
