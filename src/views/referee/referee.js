@@ -57,7 +57,7 @@ const RefereePage = () => {
             };
 
             // Hakem bilgilerini al
-            const refereeResponse = await axios.get(`/referee/referee/${userId}`, config);
+            const refereeResponse = await axios.get(`/v1/referee/referee/${userId}`, config);
             
             // Değerlendirme bilgilerini al
             const assessmentsResponse = await axios.get(`/v1/project-referees/by-referee/${userId}`, config);

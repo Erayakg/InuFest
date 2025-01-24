@@ -142,7 +142,7 @@ const AdminPage = () => {
 
   const fetchMentors = async () => {
     try {
-      const response = await axios.get('/referee', config);
+      const response = await axios.get('/v1/referee', config);
       setMentors(response.data.data);
       
     } catch (error) {
@@ -152,7 +152,7 @@ const AdminPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('/category', config);
+      const response = await axios.get('/v1/category', config);
       setCategories(response.data.data);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -263,7 +263,7 @@ const AdminPage = () => {
     e.preventDefault();
     setIsLoading(prev => ({ ...prev, addMentor: true }));
     try {
-      const response = await axios.post('/referee/addReferee', newMentorData, config);
+      const response = await axios.post('/v1/referee/addReferee', newMentorData, config);
       setMentors([...mentors, response.data.data]);
       setNewMentorData({ name: '', mail: '', categoryId: '', phoneNumber: '' });
       setShowMentorForm(false);
@@ -278,7 +278,7 @@ const AdminPage = () => {
     e.preventDefault();
     setIsLoading(prev => ({ ...prev, addCategory: true }));
     try {
-      await axios.post('/category/addCategory', { name: newCategoryName }, config);
+      await axios.post('/v1/category/addCategory', { name: newCategoryName }, config);
       fetchCategories();
       setNewCategoryName('');
       setShowCategoryForm(false);
@@ -292,7 +292,7 @@ const AdminPage = () => {
   const handleUpdateCategory = async () => {
     setIsLoading(prev => ({ ...prev, updateCategory: true }));
     try {
-      await axios.put('/category/updateCategory', {
+      await axios.put('/v1/category/updateCategory', {
         categoryId: editingCategory.id,
         name: editingCategory.name
       }, config);
@@ -308,21 +308,21 @@ const AdminPage = () => {
   const handleDeleteCategory = async (categoryId) => {
     setIsLoading(prev => ({ ...prev, deleteCategory: true }));
     try {
-      const response = await axios.delete(`/category/deleteCategory/${categoryId}`, config);
+      const response = await axios.delete(`/v1/category/deleteCategory/${categoryId}`, config);
       const message = response.data.data;
       setSnackbar({
         open: true,
-        message: message,
+        message: typeof message === 'string' ? message : 'Kategori başarıyla silindi',
         severity: 'success'
       });
       fetchCategories();
-     
     } catch (error) {
-      
       console.error('Error deleting category:', error);
+      let errorMessage = 'Kategori bir projeye yada hakeme bağlı olduğu için silemezsiniz';
+   
       setSnackbar({
         open: true,
-        message: error.response?.data?.message || 'Kategori silinirken bir hata oluştu',
+        message: errorMessage,
         severity: 'error'
       });
     } finally {
@@ -871,7 +871,7 @@ const AdminPage = () => {
                 onClick={() => setActiveTab('dashboard')}
                 sx={{ mb: { xs: 1, md: 0 } }}
               >
-                Dashboard
+                Anasayfa
               </Button>
               <Button
                 variant={activeTab === 'projects' ? 'contained' : 'text'}

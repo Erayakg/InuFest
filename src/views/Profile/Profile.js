@@ -59,7 +59,7 @@ const Profile = () => {
 
       try {
         setLoading(true);
-        const response = await axios.get(`/student/getStudentById/${userId}`, {
+        const response = await axios.get(`/v1/student/getStudentById/${userId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -109,7 +109,7 @@ const Profile = () => {
     }
 
     try {
-      const response = await axios.put(`/student/update/${userId}`, editData, {
+      const response = await axios.put(`/v1/student/update/${userId}`, editData, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -177,23 +177,7 @@ const Profile = () => {
               <Typography variant="body2" color="textSecondary" sx={{ mb: 3, fontSize: { xs: '0.875rem', md: '1rem' } }}>
                 {userData.department}
               </Typography>
-              {!isEditing && (
-                <Button
-                  variant="contained"
-                  startIcon={<EditIcon />}
-                  sx={{ 
-                    mt: 2,
-                    borderRadius: '25px',
-                    px: { xs: 2, md: 3 },
-                    py: { xs: 0.5, md: 1 },
-                    textTransform: 'none',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-                  }}
-                  onClick={handleEdit}
-                >
-                  Profili Düzenle
-                </Button>
-              )}
+            
             </CardContent>
           </Card>
         </Grid>

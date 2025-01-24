@@ -109,7 +109,6 @@ const ProjectDetail = () => {
         }
 
         // Log the referees response to verify data
-        console.log('Referees Response:', refereesResponse.data);
 
         // Hakem bilgilerini set et
         setProjectReferees(refereesResponse.data);
@@ -465,7 +464,6 @@ const ProjectDetail = () => {
                 </ListItem>
               </List>
 
-              {/* Tehlikeli Bölge */}
               {userRole === 'ROLE_STUDENT' && (
                 <Box sx={{ 
                   mt: 3, 
@@ -475,9 +473,7 @@ const ProjectDetail = () => {
                   border: '1px solid #ef5350'
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="h6" color="error">
-                      Tehlikeli Bölge
-                    </Typography>
+              
                     <Button
                       variant="contained"
                       color="error"

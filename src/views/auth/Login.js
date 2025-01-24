@@ -3,7 +3,7 @@ import { Grid, Box, Card, TextField, Button, Typography, Dialog, DialogActions, 
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 
-// Slider görselleri
+// Slider görselleriW
 const sliderImages = [
   '/login/login-image.jpg',
   '/login/login-image-2.jpg',

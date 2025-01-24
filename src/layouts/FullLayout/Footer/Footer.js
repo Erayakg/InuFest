@@ -11,9 +11,6 @@ const Footer = () => {
             <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                 İnönü Üniversitesi Dijital Dönüşüm Ofisi
             </Typography>
-            <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
-                powered by kv97
-            </Typography>
         </Box>
      );
 }

@@ -90,7 +90,7 @@ const ProjectList = () => {
     const fetchCategories = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`/category`, {
+        const response = await axios.get(`/v1/category`, {
           headers: { 
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

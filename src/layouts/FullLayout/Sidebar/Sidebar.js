@@ -14,6 +14,7 @@ import {
   useTheme,
   Collapse,
   Divider,
+  Typography,
 } from "@mui/material";
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { SidebarWidth } from "../../../assets/global/Theme-variable";
@@ -28,6 +29,15 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'space-between',
   padding: theme.spacing(0, 1),
   ...theme.mixins.toolbar,
+  '& img': {
+    width: '140px',
+    height: 'auto',
+    maxWidth: '100%',
+    transition: 'transform 0.3s ease-in-out',
+    '&:hover': {
+      transform: 'scale(1.05)',
+    },
+  },
 }));
 
 const StyledListItem = styled(ListItem)(({ theme, selected }) => ({
@@ -64,6 +74,14 @@ const LogoWrapper = styled(Box)(({ theme }) => ({
   },
 }));
 
+const UniversityText = styled('div')(({ theme }) => ({
+  textAlign: 'center',
+  color: '#4caf50', // Green color
+  fontSize: '1.2rem',
+  fontWeight: 'bold',
+  marginTop: theme.spacing(2),
+}));
+
 const Sidebar = ({ isSidebarOpen, isMobileSidebarOpen, onSidebarClose }) => {
   const [activeItem, setActiveItem] = useState('');
   const { pathname } = useLocation();
@@ -79,7 +97,7 @@ const Sidebar = ({ isSidebarOpen, isMobileSidebarOpen, onSidebarClose }) => {
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`http://localhost:8080/v1/auth/logout/${token}`);
+      const response = await axios.post(`/v1/auth/logout/${token}`);
       
       if (response.status === 200) {
         localStorage.clear();
@@ -131,6 +149,20 @@ const Sidebar = ({ isSidebarOpen, isMobileSidebarOpen, onSidebarClose }) => {
           </IconButton>
         )}
       </DrawerHeader>
+
+      <Typography 
+        variant="h5" 
+        align="center" 
+        color="primary" 
+        gutterBottom 
+        sx={{ 
+          fontWeight: 'bold', 
+          textShadow: '1px 1px 2px rgba(0, 0, 0, 0.2)', 
+          marginTop: theme.spacing(2) 
+        }}
+      >
+        İnönü Üniversitesi İNÜFEST
+      </Typography>
 
       <Divider />
 

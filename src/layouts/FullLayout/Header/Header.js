@@ -71,23 +71,7 @@ const Header = ({ sx, customClass, toggleSidebar, isSidebarOpen }) => {
             {isSidebarOpen ? <MenuOpenIcon /> : <MenuIcon />}
           </IconButton>
 
-          <LogoContainer>
-            <img 
-              src={logoInonu} 
-              alt="İnönü Üniversitesi Logo"
-            />
-            <Typography
-              variant="h6"
-              noWrap
-              sx={{
-                display: 'block',
-                fontWeight: 600,
-                color: theme.palette.primary.main,
-              }}
-            >
-              İnüFest
-            </Typography>
-          </LogoContainer>
+          
         </Box>
 
         <Box sx={{ 
@@ -102,7 +86,7 @@ const Header = ({ sx, customClass, toggleSidebar, isSidebarOpen }) => {
               color: theme.palette.text.secondary,
             }}
           >
-            {new Date().toLocaleTimeString()}
+           
           </Typography>
         </Box>
       </Toolbar>
