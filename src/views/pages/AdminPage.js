@@ -749,6 +749,7 @@ const AdminPage = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Ad Soyad</TableCell>
+                  <TableCell>E-posta</TableCell>
                   <TableCell>Uzmanlık</TableCell>
                   <TableCell>Aktif Proje Sayısı</TableCell>
                 </TableRow>
@@ -757,6 +758,7 @@ const AdminPage = () => {
                 {mentors.map((mentor) => (
                   <TableRow key={mentor.id}>
                     <TableCell>{mentor.name}</TableCell>
+                    <TableCell>{mentor.email}</TableCell>
                     <TableCell>{mentor.categoryName}</TableCell>
                     <TableCell>{mentor.projectCount}</TableCell>
                   </TableRow>

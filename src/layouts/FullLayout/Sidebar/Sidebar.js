@@ -60,13 +60,13 @@ const StyledListItem = styled(ListItem)(({ theme, selected }) => ({
 
 const LogoWrapper = styled(Box)(({ theme }) => ({
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
-  justifyContent: 'center',
-  padding: theme.spacing(2),
+  padding: theme.spacing(4, 2),
   '& img': {
-    width: '140px',
+    width: '120px',
     height: 'auto',
-    maxWidth: '100%',
+    marginBottom: theme.spacing(2),
     transition: 'transform 0.3s ease-in-out',
     '&:hover': {
       transform: 'scale(1.05)',
@@ -74,12 +74,20 @@ const LogoWrapper = styled(Box)(({ theme }) => ({
   },
 }));
 
-const UniversityText = styled('div')(({ theme }) => ({
-  textAlign: 'center',
-  color: '#4caf50', // Green color
+const UniversityTitle = styled(Typography)(({ theme }) => ({
+  color: theme.palette.primary.main,
   fontSize: '1.2rem',
-  fontWeight: 'bold',
-  marginTop: theme.spacing(2),
+  fontWeight: 600,
+  textAlign: 'center',
+  marginBottom: theme.spacing(1),
+  letterSpacing: '0.5px',
+}));
+
+const SubTitle = styled(Typography)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+  fontSize: '0.9rem',
+  textAlign: 'center',
+  letterSpacing: '0.25px',
 }));
 
 const Sidebar = ({ isSidebarOpen, isMobileSidebarOpen, onSidebarClose }) => {
@@ -133,38 +141,21 @@ const Sidebar = ({ isSidebarOpen, isMobileSidebarOpen, onSidebarClose }) => {
             src={logoInonu} 
             alt="İnönü Üniversitesi Logo"
           />
+          <UniversityTitle>
+            İnönü Üniversitesi
+          </UniversityTitle>
+          <SubTitle>
+            İNÜFEST Proje Yönetim Sistemi
+          </SubTitle>
         </LogoWrapper>
         {!lgUp && (
-          <IconButton 
-            onClick={onSidebarClose}
-            sx={{
-              fontSize: '1.5rem',
-            }}
-          >
-            <ChevronLeftIcon 
-              sx={{
-                fontSize: '2rem',
-              }}
-            />
+          <IconButton onClick={onSidebarClose}>
+            <ChevronLeftIcon />
           </IconButton>
         )}
       </DrawerHeader>
 
-      <Typography 
-        variant="h5" 
-        align="center" 
-        color="primary" 
-        gutterBottom 
-        sx={{ 
-          fontWeight: 'bold', 
-          textShadow: '1px 1px 2px rgba(0, 0, 0, 0.2)', 
-          marginTop: theme.spacing(2) 
-        }}
-      >
-        İnönü Üniversitesi İNÜFEST
-      </Typography>
-
-      <Divider />
+      <Divider sx={{ my: 2 }} />
 
       <Box sx={{ 
         flexGrow: 1,

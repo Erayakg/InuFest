@@ -71,7 +71,15 @@ const Header = ({ sx, customClass, toggleSidebar, isSidebarOpen }) => {
             {isSidebarOpen ? <MenuOpenIcon /> : <MenuIcon />}
           </IconButton>
 
-          
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              color: theme.palette.primary.main,
+            }}
+          >
+            İNÜFEST Proje Yönetim Sistemi
+          </Typography>
         </Box>
 
         <Box sx={{ 
@@ -79,15 +87,14 @@ const Header = ({ sx, customClass, toggleSidebar, isSidebarOpen }) => {
           alignItems: 'center',
           gap: 2 
         }}>
-          <Typography
-            variant="body2"
-            sx={{
-              display: { xs: 'none', md: 'block' },
-              color: theme.palette.text.secondary,
-            }}
-          >
-           
-          </Typography>
+          {/* Sağ tarafta ek menü öğeleri veya profil butonu eklenebilir */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            gap: 1
+          }}>
+            {/* Buraya profil menüsü, bildirimler vb. eklenebilir */}
+          </Box>
         </Box>
       </Toolbar>
     </StyledAppBar>
