@@ -449,7 +449,7 @@ const ProjectDetail = () => {
                   </ListItemIcon>
                   <ListItemText 
                     primary="Kategori"
-                    secondary={project?.category?.name}
+                    secondary={project?.category?.subCategoryResponse}
                   />
                 </ListItem>
 

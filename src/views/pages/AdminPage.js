@@ -33,12 +33,15 @@ import {
   Alert,
   Snackbar,
   Pagination,
+  DialogContentText,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   Assignment as ProjectIcon,
   Person as MentorIcon,
   Delete as DeleteIcon,
+  KeyboardArrowUp as KeyboardArrowUpIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
 } from '@mui/icons-material';
 
 const AdminPage = () => {
@@ -85,6 +88,17 @@ const AdminPage = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [showSubCategoryForm, setShowSubCategoryForm] = useState(false);
+  const [selectedParentCategory, setSelectedParentCategory] = useState(null);
+  const [newSubCategoryName, setNewSubCategoryName] = useState('');
+  const [subCategories, setSubCategories] = useState({});
+  const [expandedCategories, setExpandedCategories] = useState(new Set());
+  const [editingSubCategory, setEditingSubCategory] = useState(null);
+  const [deleteRefereeDialog, setDeleteRefereeDialog] = useState({
+    open: false,
+    refereeId: null,
+    refereeName: ''
+  });
 
   useEffect(() => {
     fetchMentors();
@@ -153,7 +167,18 @@ const AdminPage = () => {
   const fetchCategories = async () => {
     try {
       const response = await axios.get('/v1/category', config);
-      setCategories(response.data.data);
+      // Her kategori için alt kategori sayısını kontrol et
+      const categoriesWithSubCount = await Promise.all(
+        response.data.data.map(async (category) => {
+          const subResponse = await axios.get(`/v1/category/getSubCategories/${category.id}`, config);
+          const subCategories = subResponse.data.data.find(cat => cat.id === category.id)?.subCategories || [];
+          return {
+            ...category,
+            hasSubCategories: subCategories.length > 0
+          };
+        })
+      );
+      setCategories(categoriesWithSubCount);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -514,6 +539,137 @@ const AdminPage = () => {
     </Card>
   );
 
+  const handleAddSubCategory = async (e) => {
+    e.preventDefault();
+    setIsLoading(prev => ({ ...prev, addCategory: true }));
+    try {
+      await axios.post(`/v1/category/addSubCategory/${selectedParentCategory.id}`, 
+        { name: newSubCategoryName }, 
+        config
+      );
+      
+      // Alt kategorileri ve ana kategorileri yeniden yükle
+      await Promise.all([
+        fetchSubCategories(selectedParentCategory.id),
+        fetchCategories() // Ana kategorileri de güncelle
+      ]);
+      
+      setNewSubCategoryName('');
+      setShowSubCategoryForm(false);
+      setSnackbar({
+        open: true,
+        message: 'Alt kategori başarıyla eklendi',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error adding sub-category:', error);
+      setSnackbar({
+        open: true,
+        message: 'Alt kategori eklenirken bir hata oluştu',
+        severity: 'error'
+      });
+    } finally {
+      setIsLoading(prev => ({ ...prev, addCategory: false }));
+    }
+  };
+
+  const fetchSubCategories = async (parentId) => {
+    try {
+      const response = await axios.get(`/v1/category/getSubCategories/${parentId}`, config);
+      const categoryData = response.data.data.find(cat => cat.id === parentId);
+      
+      if (categoryData) {
+        setSubCategories(prev => ({
+          ...prev,
+          [parentId]: categoryData.subCategories
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching sub-categories:', error);
+      setSnackbar({
+        open: true,
+        message: 'Alt kategoriler yüklenirken bir hata oluştu',
+        severity: 'error'
+      });
+    }
+  };
+
+  const toggleCategoryExpand = async (categoryId) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+      await fetchSubCategories(categoryId);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  const handleStartEditingSubCategory = (subCategory, parentCategory) => {
+    setEditingSubCategory({
+      ...subCategory,
+      parentId: parentCategory.id
+    });
+  };
+
+  const handleUpdateSubCategory = async () => {
+    setIsLoading(prev => ({ ...prev, updateCategory: true }));
+    try {
+      await axios.put(`/v1/category/sub-categories/${editingSubCategory.id}`, {
+        name: editingSubCategory.name
+      }, config);
+      
+      // Alt kategorileri yeniden yükle
+      await fetchSubCategories(editingSubCategory.parentId);
+      setEditingSubCategory(null);
+      
+      setSnackbar({
+        open: true,
+        message: 'Alt kategori başarıyla güncellendi',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error updating sub-category:', error);
+      setSnackbar({
+        open: true,
+        message: 'Alt kategori güncellenirken bir hata oluştu',
+        severity: 'error'
+      });
+    } finally {
+      setIsLoading(prev => ({ ...prev, updateCategory: false }));
+    }
+  };
+
+  const handleDeleteSubCategory = async (subCategoryId, parentId) => {
+    if (window.confirm('Alt kategoriyi silmek istediğinize emin misiniz?')) {
+      setIsLoading(prev => ({ ...prev, deleteCategory: true }));
+      try {
+        await axios.delete(`/v1/category/sub-categories/${subCategoryId}`, config);
+        
+        // Alt kategorileri ve ana kategorileri yeniden yükle
+        await Promise.all([
+          fetchSubCategories(parentId),
+          fetchCategories()
+        ]);
+        
+        setSnackbar({
+          open: true,
+          message: 'Alt kategori başarıyla silindi',
+          severity: 'success'
+        });
+      } catch (error) {
+        console.error('Error deleting sub-category:', error);
+        setSnackbar({
+          open: true,
+          message: 'Alt kategori bir projeye bağlı olduğu için silinemedi',
+          severity: 'error'
+        });
+      } finally {
+        setIsLoading(prev => ({ ...prev, deleteCategory: false }));
+      }
+    }
+  };
+
   const renderCategories = () => (
     <Card sx={{ mt: 3 }}>
       <CardContent>
@@ -574,69 +730,189 @@ const AdminPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Kategori Adı</TableCell>
+                <TableCell>Alt Kategoriler</TableCell>
                 <TableCell align="right">İşlemler</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {categories.map((category) => (
-                <TableRow key={category.id}>
-                  <TableCell>
-                    {editingCategory?.id === category.id ? (
-                      <TextField
-                        fullWidth
-                        value={editingCategory.name}
-                        onChange={(e) => setEditingCategory({
-                          ...editingCategory,
-                          name: e.target.value
-                        })}
-                      />
-                    ) : category.name}
-                  </TableCell>
-                  <TableCell align="right">
-                    {editingCategory?.id === category.id ? (
-                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                        <LoadingButton
-                          loading={isLoading.updateCategory}
-                          size="small"
-                          variant="contained"
-                          onClick={handleUpdateCategory}
-                        >
-                          Kaydet
-                        </LoadingButton>
+                <React.Fragment key={category.id}>
+                  <TableRow>
+                    <TableCell>
+                      {editingCategory?.id === category.id ? (
+                        <TextField
+                          fullWidth
+                          value={editingCategory.name}
+                          onChange={(e) => setEditingCategory({
+                            ...editingCategory,
+                            name: e.target.value
+                          })}
+                        />
+                      ) : category.name}
+                    </TableCell>
+                    <TableCell>
+                      {category.hasSubCategories && (
                         <Button
                           size="small"
-                          variant="outlined"
-                          onClick={() => setEditingCategory(null)}
+                          onClick={() => toggleCategoryExpand(category.id)}
+                          startIcon={expandedCategories.has(category.id) ? 
+                            <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                         >
-                          İptal
+                          {expandedCategories.has(category.id) ? 'Gizle' : 'Göster'}
                         </Button>
-                      </Box>
-                    ) : (
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
                       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
                         <Button
                           size="small"
                           variant="outlined"
-                          onClick={() => setEditingCategory(category)}
+                          color="primary"
+                          onClick={() => {
+                            setSelectedParentCategory(category);
+                            setShowSubCategoryForm(true);
+                          }}
                         >
-                          Düzenle
+                          Alt Kategori Ekle
                         </Button>
-                        <LoadingButton
-                          loading={isLoading.deleteCategory}
-                          size="small"
-                          variant="outlined"
-                          color="error"
-                          onClick={() => handleDeleteCategory(category.id)}
-                        >
-                          Sil
-                        </LoadingButton>
+                        {editingCategory?.id === category.id ? (
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                            <LoadingButton
+                              loading={isLoading.updateCategory}
+                              size="small"
+                              variant="contained"
+                              onClick={handleUpdateCategory}
+                            >
+                              Kaydet
+                            </LoadingButton>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => setEditingCategory(null)}
+                            >
+                              İptal
+                            </Button>
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                            <LoadingButton
+                              loading={isLoading.deleteCategory}
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleDeleteCategory(category.id)}
+                            >
+                              Sil
+                            </LoadingButton>
+                          </Box>
+                        )}
                       </Box>
-                    )}
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                  </TableRow>
+                  
+                  {/* Alt kategoriler */}
+                  {expandedCategories.has(category.id) && subCategories[category.id]?.map(subCategory => (
+                    <TableRow key={subCategory.id} sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ pl: 4 }}>
+                        {editingSubCategory?.id === subCategory.id ? (
+                          <TextField
+                            fullWidth
+                            value={editingSubCategory.name}
+                            onChange={(e) => setEditingSubCategory({
+                              ...editingSubCategory,
+                              name: e.target.value
+                            })}
+                            size="small"
+                          />
+                        ) : (
+                          `└─ ${subCategory.name}`
+                        )}
+                      </TableCell>
+                      <TableCell></TableCell>
+                      <TableCell align="right">
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          {editingSubCategory?.id === subCategory.id ? (
+                            <>
+                              <LoadingButton
+                                size="small"
+                                variant="contained"
+                                onClick={handleUpdateSubCategory}
+                                loading={isLoading.updateCategory}
+                              >
+                                Kaydet
+                              </LoadingButton>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => setEditingSubCategory(null)}
+                              >
+                                İptal
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => handleStartEditingSubCategory(subCategory, category)}
+                              >
+                                Düzenle
+                              </Button>
+                              <LoadingButton
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                onClick={() => handleDeleteSubCategory(subCategory.id, category.id)}
+                                loading={isLoading.deleteCategory}
+                              >
+                                Sil
+                              </LoadingButton>
+                            </>
+                          )}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Alt kategori ekleme formu */}
+        <Dialog 
+          open={showSubCategoryForm} 
+          onClose={() => {
+            setShowSubCategoryForm(false);
+            setNewSubCategoryName('');
+          }}
+        >
+          <DialogTitle>
+            Alt Kategori Ekle: {selectedParentCategory?.name}
+          </DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Alt Kategori Adı"
+              fullWidth
+              value={newSubCategoryName}
+              onChange={(e) => setNewSubCategoryName(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowSubCategoryForm(false)}>
+              İptal
+            </Button>
+            <LoadingButton
+              loading={isLoading.addCategory}
+              onClick={handleAddSubCategory}
+              variant="contained"
+            >
+              Ekle
+            </LoadingButton>
+          </DialogActions>
+        </Dialog>
       </CardContent>
     </Card>
   );
@@ -752,6 +1028,7 @@ const AdminPage = () => {
                   <TableCell>E-posta</TableCell>
                   <TableCell>Uzmanlık</TableCell>
                   <TableCell>Aktif Proje Sayısı</TableCell>
+                  <TableCell align="right">İşlemler</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -761,6 +1038,17 @@ const AdminPage = () => {
                     <TableCell>{mentor.email}</TableCell>
                     <TableCell>{mentor.categoryName}</TableCell>
                     <TableCell>{mentor.projectCount}</TableCell>
+                    <TableCell align="right">
+                      <LoadingButton
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        onClick={() => handleDeleteReferee(mentor.id, mentor.name)}
+                        startIcon={<DeleteIcon />}
+                      >
+                        Sil
+                      </LoadingButton>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -768,8 +1056,78 @@ const AdminPage = () => {
           </TableContainer>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={deleteRefereeDialog.open}
+        onClose={() => setDeleteRefereeDialog({ open: false, refereeId: null, refereeName: '' })}
+      >
+        <DialogTitle>
+          Hakem Silme İşlemi
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <Typography color="error" paragraph>
+              DİKKAT: Bu işlem geri alınamaz!
+            </Typography>
+            <Typography>
+              {deleteRefereeDialog.refereeName} isimli hakemi silmek istediğinize emin misiniz?
+            </Typography>
+            <Typography color="warning.main" sx={{ mt: 2 }}>
+              Hakeme ait tüm değerlendirmeler kalıcı olarak silinecektir.
+            </Typography>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteRefereeDialog({ open: false, refereeId: null, refereeName: '' })}
+          >
+            İptal
+          </Button>
+          <LoadingButton
+            onClick={confirmDeleteReferee}
+            color="error"
+            variant="contained"
+            autoFocus
+          >
+            Evet, Sil
+          </LoadingButton>
+        </DialogActions>
+      </Dialog>
     </>
   );
+
+  const handleDeleteReferee = async (refereeId, refereeName) => {
+    setDeleteRefereeDialog({
+      open: true,
+      refereeId,
+      refereeName
+    });
+  };
+
+  const confirmDeleteReferee = async () => {
+    try {
+      await axios.delete(`/v1/referee/deleteReferee/${deleteRefereeDialog.refereeId}`, config);
+      
+      setSnackbar({
+        open: true,
+        message: 'Hakem başarıyla silindi',
+        severity: 'success'
+      });
+      
+      // Hakem listesini güncelle
+      fetchMentors();
+      
+    } catch (error) {
+      console.error('Error deleting referee:', error);
+      setSnackbar({
+        open: true,
+        message: 'Hakem projeye bağlı olduğu için silinemedi',
+        severity: 'error'
+      });
+    } finally {
+      setDeleteRefereeDialog({ open: false, refereeId: null, refereeName: '' });
+    }
+  };
 
   const renderAssignmentDialog = () => (
     <Dialog open={openAssignDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>

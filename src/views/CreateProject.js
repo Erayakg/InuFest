@@ -60,6 +60,10 @@ const CreateProject = () => {
   // Add loading state for submit button
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // State tanımlamalarına eklenecek
+  const [selectedMainCategory, setSelectedMainCategory] = useState(null);
+  const [subCategories, setSubCategories] = useState([]);
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -78,6 +82,30 @@ const CreateProject = () => {
     fetchCategories();
   }, []);
 
+  // Alt kategorileri getiren yeni fonksiyon
+  const fetchSubCategories = async (parentId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`/v1/category/getSubCategories/${parentId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const categoryData = response.data.data.find(cat => cat.id === parentId);
+      if (categoryData && categoryData.subCategories) {
+        setSubCategories(categoryData.subCategories);
+      } else {
+        setSubCategories([]);
+      }
+    } catch (error) {
+      console.error('Error fetching sub-categories:', error);
+      setSnackbar({
+        open: true,
+        message: 'Alt kategoriler yüklenirken bir hata oluştu',
+        severity: 'error'
+      });
+    }
+  };
+
   const validateForm = () => {
     let tempErrors = {};
     let isValid = true;
@@ -95,8 +123,11 @@ const CreateProject = () => {
     }
 
     // Kategori kontrolü
-    if (!formData.categoryId) {
-      tempErrors.categoryId = 'Kategori seçimi zorunludur';
+    if (!selectedMainCategory) {
+      tempErrors.categoryId = 'Ana kategori seçimi zorunludur';
+      isValid = false;
+    } else if (!formData.categoryId) {
+      tempErrors.categoryId = 'Alt kategori seçimi zorunludur';
       isValid = false;
     }
 
@@ -142,7 +173,8 @@ const CreateProject = () => {
 
       formDataToSend.append('name', formData.name);
       formDataToSend.append('description', formData.description);
-      formDataToSend.append('categoryId', formData.categoryId);
+      formDataToSend.append('categoryId', selectedMainCategory.id);
+      formDataToSend.append('subCategoryId', formData.categoryId);
       formDataToSend.append('studentId', userId);
 
       // Üyeleri JSON string olarak gönder
@@ -163,12 +195,23 @@ const CreateProject = () => {
       });
 
       if (response.data.success) {
+        setSnackbar({
+          open: true,
+          message: 'Proje başarıyla oluşturuldu',
+          severity: 'success'
+        });
         navigate('/projects');
       }
     } catch (error) {
+      console.error('Proje oluşturma hatası:', error);
       setError(
         error.response?.data?.message || 'Proje oluşturulurken bir hata oluştu.'
       );
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Proje oluşturulurken bir hata oluştu',
+        severity: 'error'
+      });
     } finally {
       setIsSubmitting(false);
       setLoading(false);
@@ -242,25 +285,56 @@ const CreateProject = () => {
 
                 {/* Kategori Seçimi */}
                 <Grid item xs={12}>
-                  <Autocomplete
-                    options={categories}
-                    getOptionLabel={(option) => option.name}
-                    onChange={(_, newValue) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        categoryId: newValue?.id || null
-                      }));
-                    }}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Kategori"
-                        required
-                        error={!!errors.categoryId}
-                        helperText={errors.categoryId}
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <Autocomplete
+                        options={categories}
+                        getOptionLabel={(option) => option.name}
+                        value={selectedMainCategory}
+                        onChange={(_, newValue) => {
+                          setSelectedMainCategory(newValue);
+                          setFormData(prev => ({ ...prev, categoryId: null }));
+                          if (newValue) {
+                            fetchSubCategories(newValue.id);
+                          } else {
+                            setSubCategories([]);
+                          }
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Ana Kategori"
+                            required
+                            error={!!errors.categoryId && !selectedMainCategory}
+                            helperText={!selectedMainCategory && errors.categoryId}
+                          />
+                        )}
                       />
-                    )}
-                  />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Autocomplete
+                        options={subCategories}
+                        getOptionLabel={(option) => option.name}
+                        value={subCategories.find(cat => cat.id === formData.categoryId) || null}
+                        onChange={(_, newValue) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            categoryId: newValue?.id || null
+                          }));
+                        }}
+                        disabled={!selectedMainCategory}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Alt Kategori"
+                            required
+                            error={!!errors.categoryId && selectedMainCategory}
+                            helperText={selectedMainCategory && errors.categoryId}
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
                 </Grid>
 
                 {/* Proje Üyeleri */}
