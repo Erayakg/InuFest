@@ -5,9 +5,10 @@ import axios from "axios";
 
 // Slider görselleriW
 const sliderImages = [
-  '/login/login-image.jpg',
-  '/login/login-image-2.jpg',
-  '/login/login-image3.jpg'
+    
+  '/login/inufest-login.jpg',
+  '/login/inufest-login.jpg',
+  '/login/inufest-login.jpg'
 ];
 
 const Login = () => {

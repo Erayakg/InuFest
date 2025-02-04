@@ -30,8 +30,17 @@ const Register = () => {
   const validate = () => {
     const newError = {};
     if (!formData.userName) newError.userName = "Kullanıcı adı gerekli";
-    if (!formData.password || formData.password.length < 6) newError.password = "Şifre en az 6 karakter olmalı";
-    if (formData.password !== formData.confirmPassword) newError.confirmPassword = "Şifreler eşleşmiyor";
+    if (!formData.password || formData.password.length < 8) {
+      newError.password = "Şifre en az 8 karakter olmalı";
+    } else if (!/[A-Z]/.test(formData.password)) {
+      newError.password = "Şifre en az bir büyük harf içermeli";
+    } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
+      newError.password = "Şifre en az bir noktalama işareti içermeli";
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      newError.confirmPassword = "Şifreler eşleşmiyor";
+    }
     if (!formData.email || !/\S+@ogr\.inonu\.edu\.tr$/.test(formData.email)) newError.email = "Geçerli bir öğrenci e-posta adresi girin (@ogr.inonu.edu.tr)";
     if (!formData.phoneNumber || !/^[0-9]{11}$/.test(formData.phoneNumber)) newError.phoneNumber = "Telefon numarası 11 haneli olmalı";
     if (!formData.studentNumber || !/^[0-9]{11}$/.test(formData.studentNumber)) newError.studentNumber = "Öğrenci numarası 11 haneli olmalı";
