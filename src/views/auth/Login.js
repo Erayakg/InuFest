@@ -277,7 +277,7 @@ const Login = () => {
                         color: '#333'
                     }}
                 >
-                    İnönü Üniversitesi Teknofest
+                    İnönü Üniversitesi İnüfest
                 </Typography>
             </Box>
 
