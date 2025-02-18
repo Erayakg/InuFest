@@ -35,6 +35,14 @@ import StarIcon from '@mui/icons-material/Star';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+const token = localStorage.getItem('token');
+const config = {
+  headers: { 
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  }
+};
+
 const ProjectList = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -53,18 +61,16 @@ const ProjectList = () => {
   const [categories, setCategories] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [averageScores, setAverageScores] = useState({});
+  const [selectedFilterCategory, setSelectedFilterCategory] = useState('');
+  const [selectedFilterSubCategory, setSelectedFilterSubCategory] = useState('');
+  const [filterSubCategories, setFilterSubCategories] = useState([]);
+  const [selectedSubCategory, setSelectedSubCategory] = useState('');
 
   // Fetch Projects
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`/v1/project`, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await axios.get(`/v1/project`, config);
         
         if (response.data && response.data.data) {
           const projectData = Array.isArray(response.data.data) 
@@ -89,13 +95,7 @@ const ProjectList = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`/v1/category`, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await axios.get(`/v1/category`, config);
         setCategories(response.data.data || []);
       } catch (err) {
         console.error('Error fetching categories:', err);
@@ -109,13 +109,7 @@ const ProjectList = () => {
   useEffect(() => {
     const fetchAverageScores = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`/v1/project-referees`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        const response = await axios.get(`/v1/project-referees`, config);
   
         // Proje ID'lere göre gruplama ve ortalama hesaplama
         const scores = {};
@@ -163,7 +157,13 @@ const ProjectList = () => {
       })
       .filter(project => {
         if (categoryFilter === "all") return true;
-        return project.category?.name === categoryFilter;
+        
+        const matchesCategory = project.category?.name === categoryFilter;
+        if (!matchesCategory) return false;
+
+        if (selectedSubCategory === '') return true;
+
+        return project.subCategory?.id === parseInt(selectedSubCategory);
       })
       .sort((a, b) => {
         if (scoreSortOrder) {
@@ -183,7 +183,7 @@ const ProjectList = () => {
         
         return 0; // No sorting if no order is selected
       });
-  }, [projects, searchQuery, mentorFilter, categoryFilter, scoreSortOrder, dateSortOrder, averageScores]);
+  }, [projects, searchQuery, mentorFilter, categoryFilter, selectedSubCategory, scoreSortOrder, dateSortOrder, averageScores]);
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedProjects.length / rowsPerPage);
@@ -211,9 +211,30 @@ const ProjectList = () => {
     setPage(1);
   };
 
-  const handleCategoryFilterChange = (event) => {
-    setCategoryFilter(event.target.value);
+  const handleCategoryFilterChange = async (event) => {
+    const categoryName = event.target.value;
+    setCategoryFilter(categoryName);
+    setSelectedSubCategory(''); // Alt kategori seçimini sıfırla
     setPage(1);
+    
+    if (categoryName !== 'all') {
+      try {
+        const selectedCategory = categories.find(cat => cat.name === categoryName);
+        if (selectedCategory) {
+          const response = await axios.get(`/v1/category/getSubCategories/${selectedCategory.id}`, config);
+          const categoryData = response.data.data.find(cat => cat.id === selectedCategory.id);
+          if (categoryData && categoryData.subCategories) {
+            setFilterSubCategories(categoryData.subCategories);
+          } else {
+            setFilterSubCategories([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching sub-categories:', error);
+      }
+    } else {
+      setFilterSubCategories([]);
+    }
   };
 
   const handlePageChange = (event, newPage) => {
@@ -326,6 +347,29 @@ const ProjectList = () => {
           ))}
         </Select>
       </FormControl>
+
+      <FormControl 
+        size="small" 
+        sx={{ minWidth: 200 }}
+        disabled={categoryFilter === "all"}
+      >
+        <InputLabel>Alt Kategori</InputLabel>
+        <Select
+          value={selectedSubCategory}
+          label="Alt Kategori"
+          onChange={(e) => {
+            setSelectedSubCategory(e.target.value);
+            setPage(1);
+          }}
+        >
+          <MenuItem value="">Tümü</MenuItem>
+          {filterSubCategories.map(subCategory => (
+            <MenuItem key={subCategory.id} value={subCategory.id}>
+              {subCategory.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
     </Box>
   );
 
@@ -382,9 +426,16 @@ const ProjectList = () => {
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <CategoryIcon color="primary" fontSize="small" />
-                <Typography variant="body2" color="textSecondary">
-                  {project.category?.name || 'Kategori Yok'}
-                </Typography>
+                <Box>
+                  <Typography variant="body2" color="textSecondary">
+                    {project.category?.name || 'Kategori Yok'}
+                  </Typography>
+                  {project.subCategory && (
+                    <Typography variant="body2" color="textSecondary" sx={{ ml: 2 }}>
+                      Alt Kategori: {project.subCategory.name}
+                    </Typography>
+                  )}
+                </Box>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <PersonIcon color="primary" fontSize="small" />
@@ -459,12 +510,22 @@ const ProjectList = () => {
                 </Box>
               </TableCell>
               <TableCell>
-                <Chip 
-                  label={project.category?.name || 'Kategori Yok'} 
-                  size="small" 
-                  color="primary"
-                  variant="outlined"
-                />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <Chip 
+                    label={project.category?.name || 'Kategori Yok'} 
+                    size="small" 
+                    color="primary"
+                    variant="outlined"
+                  />
+                  {project.subCategory && (
+                    <Chip 
+                      label={project.subCategory.name}
+                      size="small"
+                      color="secondary"
+                      variant="outlined"
+                    />
+                  )}
+                </Box>
               </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
