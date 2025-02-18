@@ -60,8 +60,6 @@ const ProjectList = () => {
   const [rowsPerPage] = useState(10);
   const [categories, setCategories] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [subCategoryFilter, setSubCategoryFilter] = useState("all");
-  const [subCategories, setSubCategories] = useState([]);
   const [averageScores, setAverageScores] = useState({});
   const [selectedFilterCategory, setSelectedFilterCategory] = useState('');
   const [selectedFilterSubCategory, setSelectedFilterSubCategory] = useState('');
@@ -107,44 +105,6 @@ const ProjectList = () => {
     fetchCategories();
   }, []);
 
-  // Fetch Sub-Categories when Category Filter Changes
-  useEffect(() => {
-    const fetchSubCategories = async () => {
-      if (categoryFilter === "all") {
-        setSubCategories([]); // Eğer "Tümü" seçilirse alt kategorileri temizle
-        return;
-      }
-  
-      // Seçilen kategoriyi bul
-      const selectedCategory = categories.find(cat => cat.name === categoryFilter);
-      if (!selectedCategory) return;
-  
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`/v1/category/getSubCategories/${selectedCategory.id}`, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-  
-        // API'den gelen veriyi işle
-        const categoryData = response.data.data.find(cat => cat.id === selectedCategory.id);
-        if (categoryData && categoryData.subCategories) {
-          console.log("Alt Kategoriler:", categoryData.subCategories);
-          setSubCategories(categoryData.subCategories); // Alt kategorileri state'e kaydet
-        } else {
-          setSubCategories([]); // Alt kategori yoksa state'i temizle
-        }
-      } catch (err) {
-        console.error('Alt kategoriler çekilirken hata oluştu:', err);
-      }
-    };
-  
-    fetchSubCategories();
-  }, [categoryFilter, categories]);
-  
-
   // Fetch Average Scores
   useEffect(() => {
     const fetchAverageScores = async () => {
@@ -153,24 +113,36 @@ const ProjectList = () => {
   
         // Proje ID'lere göre gruplama ve ortalama hesaplama
         const scores = {};
-        response.data.forEach(project => {
-          if (project.assessments && project.assessments.length > 0) {
-            const totalScore = project.assessments.reduce((acc, assessment) => acc + assessment.score, 0);
-            scores[project.projectId] = totalScore / project.assessments.length;
-          } else {
-            scores[project.projectId] = 0;
+        response.data.forEach((item) => {
+          const { projectId, assessments } = item;
+  
+          if (!scores[projectId]) {
+            scores[projectId] = { totalScore: 0, count: 0 };
+          }
+  
+          if (assessments && assessments.length > 0) {
+            assessments.forEach((assessment) => {
+              scores[projectId].totalScore += assessment.score;
+              scores[projectId].count += 1;
+            });
           }
         });
-
-        setAverageScores(scores);
+  
+        // Ortalama puanları hesapla
+        const averageScores = {};
+        Object.keys(scores).forEach((projectId) => {
+          const { totalScore, count } = scores[projectId];
+          averageScores[projectId] = count > 0 ? totalScore / count : 0;
+        });
+  
+        setAverageScores(averageScores);
       } catch (err) {
-        console.error('Error fetching average scores:', err);
+        console.error('Ortalama puanlar alınırken bir hata oluştu:', err);
       }
     };
-
+  
     fetchAverageScores();
   }, []);
-
   // Filtering and Sorting Logic
   const filteredAndSortedProjects = React.useMemo(() => {
     return [...projects]
@@ -192,45 +164,26 @@ const ProjectList = () => {
         if (selectedSubCategory === '') return true;
 
         return project.subCategory?.id === parseInt(selectedSubCategory);
-        return project.category?.name === categoryFilter; // Ana kategori filtresi
-      })
-      .filter(project => {
-        // Alt kategori filtresi kontrolü
-        if (subCategoryFilter === "all") return true;
-  
-        // Burada subCategoryResponse alanını kontrol ediyoruz
-        return project.category?.subCategoryResponse === subCategoryFilter;
       })
       .sort((a, b) => {
         if (scoreSortOrder) {
           const scoreA = averageScores[a.id] || 0;
           const scoreB = averageScores[b.id] || 0;
-  
+          
           if (scoreA !== scoreB) {
             return scoreSortOrder === "highest" ? scoreB - scoreA : scoreA - scoreB;
           }
         }
-  
+        
         if (dateSortOrder) {
           const dateA = new Date(a.createdDate).getTime();
           const dateB = new Date(b.createdDate).getTime();
           return dateSortOrder === "desc" ? dateB - dateA : dateA - dateB;
         }
-  
-        return 0; // Sıralama yok
+        
+        return 0; // No sorting if no order is selected
       });
   }, [projects, searchQuery, mentorFilter, categoryFilter, selectedSubCategory, scoreSortOrder, dateSortOrder, averageScores]);
-  }, [
-    projects, 
-    searchQuery, 
-    mentorFilter, 
-    categoryFilter, 
-    subCategoryFilter, 
-    scoreSortOrder, 
-    dateSortOrder, 
-    averageScores
-  ]);
-  
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedProjects.length / rowsPerPage);
@@ -262,14 +215,6 @@ const ProjectList = () => {
     const categoryName = event.target.value;
     setCategoryFilter(categoryName);
     setSelectedSubCategory(''); // Alt kategori seçimini sıfırla
-  const handleCategoryFilterChange = (event) => {
-    setCategoryFilter(event.target.value);
-    setSubCategoryFilter("all"); // Reset sub-category filter when category changes
-    setPage(1);
-  };
-
-  const handleSubCategoryFilterChange = (event) => {
-    setSubCategoryFilter(event.target.value);
     setPage(1);
     
     if (categoryName !== 'all') {
@@ -335,10 +280,6 @@ const ProjectList = () => {
     if (!student) return 'Kaptan bilgisi yok';
     return `${student.username} (${student.studentNumber})`;
   };
-  console.log("Seçilen Kategori:", categoryFilter);
-  console.log("Alt Kategoriler:", subCategories);
-  console.log("seçilen alt kategori : " + subCategoryFilter )
-
 
   // Render Controls
   const renderControls = () => (
@@ -429,21 +370,6 @@ const ProjectList = () => {
           ))}
         </Select>
       </FormControl>
-      <FormControl size="small" sx={{ minWidth: 200 }} disabled={categoryFilter === "all"}>
-        <InputLabel>Alt Kategori</InputLabel>
-        <Select
-          value={subCategoryFilter}
-          label="Alt Kategori"
-          onChange={handleSubCategoryFilterChange}
-        >
-          <MenuItem value="all">Tümü</MenuItem>
-          {subCategories.map(subCategory => (
-            <MenuItem key={subCategory.id} value={subCategory.name}>
-              {subCategory.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
     </Box>
   );
 
@@ -493,9 +419,9 @@ const ProjectList = () => {
                 {project.name}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <StarIcon color="primary" fontSize="small" />
+                <StarIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
                 <Typography variant="body2" color="textSecondary">
-                  Ortalama Puan: {(averageScores[project.id] || 0).toFixed(2)}
+                  {(averageScores[project.id] || 0).toFixed(2)}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -579,11 +505,8 @@ const ProjectList = () => {
               <TableCell>{project.name}</TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <StarIcon 
-                    fontSize="small" 
-                    sx={{ color: theme.palette.warning.main }}
-                  />
-                  {(averageScores[project.id] || 0).toFixed(2)}
+                <StarIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
+                {(averageScores[project.id] || 0).toFixed(2)}
                 </Box>
               </TableCell>
               <TableCell>
