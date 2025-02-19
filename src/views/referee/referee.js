@@ -65,21 +65,25 @@ const RefereePage = () => {
             const referee = refereeResponse.data.data; // data içinden al
             const assessments = assessmentsResponse.data;
 
+            const recentAssessments = assessments.map(assessment => {
+                const firstAssessment = assessment.assessments && assessment.assessments[0];
+                return {
+                    projectName: assessment.projectName,
+                    score: firstAssessment?.score || 'Değerlendirilmedi', // Default to 'Değerlendirilmedi' if score is not available
+                    description: firstAssessment?.description || 'Değerlendirilmedi', // Default to 'Değerlendirilmedi' if not available
+                    date: new Date().toISOString() // API'den tarih gelmediği için şimdilik current date
+                };
+            });
+
+            const totalAssessments = recentAssessments.filter(assessment => assessment.score !== 'Değerlendirilmedi').length;
+
             setRefereeData({
                 username: referee.name,
                 category: referee.categoryName,
                 email: referee.email,
                 projectCount: referee.projectCount,
-                totalAssessments: assessments.length,
-                recentAssessments: assessments.map(assessment => {
-                    const firstAssessment = assessment.assessments && assessment.assessments[0];
-                    return {
-                        projectName: assessment.projectName,
-                        score: firstAssessment?.score || 'N/A', // Default to 'N/A' if score is not available
-                        description: firstAssessment?.description || 'No description', // Default to 'No description' if not available
-                        date: new Date().toISOString() // API'den tarih gelmediği için şimdilik current date
-                    };
-                })
+                totalAssessments: totalAssessments,
+                recentAssessments: recentAssessments
             });
         } catch (error) {
             console.error('Hakem bilgileri alınamadı:', error);
@@ -210,7 +214,8 @@ const RefereePage = () => {
                                                     <Chip
                                                         label={assessment.score}
                                                         size="small"
-                                                        color={assessment.score >= 75 ? 'success' : 
+                                                        color={assessment.score === 'Değerlendirilmedi' ? 'default' :
+                                                               assessment.score >= 75 ? 'success' : 
                                                                assessment.score >= 60 ? 'warning' : 'error'}
                                                         sx={{ fontWeight: 'bold' }}
                                                     />

@@ -6,8 +6,6 @@ import axios from "axios";
 // Slider görselleriW
 const sliderImages = [
     
-  '/login/inufest-login.jpg',
-  '/login/inufest-login.jpg',
   '/login/inufest-login.jpg'
 ];
 
@@ -492,7 +490,7 @@ const Login = () => {
                         position: 'relative',
                         overflow: 'hidden',
                         height: '500px', // Yüksekliği azalttım
-                        p: 2 // Padding ekleyerek beyaz kenarlık oluşturdum
+                        p: 5 // Padding ekleyerek beyaz kenarlık oluşturdum
                     }}
                 >
                     <Box
@@ -517,8 +515,8 @@ const Login = () => {
                                     left: 0,
                                     width: '100%',
                                     height: '100%',
-                                    objectFit: 'cover',
-                                    borderRadius: 2,
+                                    objectFit: 'contain',
+                                    borderRadius: 15,
                                     opacity: currentImageIndex === index ? 1 : 0,
                                     transition: 'opacity 0.5s ease-in-out',
                                 }}

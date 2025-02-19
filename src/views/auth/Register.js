@@ -13,18 +13,53 @@ const Register = () => {
     faculty: "",
     department: "",
     classNumber: "",
-    phoneNumber: "",
+    phoneNumber: "+90 ",
   });
   const [error, setError] = useState({});
   const [open, setOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Telefon numarasını formatla
+  const formatPhoneNumber = (value) => {
+    // Sadece rakamları al
+    const cleaned = value.replace(/\D/g, "");
+    // +90 sabit kalsın, geri kalanı formatla
+    if (cleaned.length <= 2) {
+      return `+${cleaned}`;
+    } else if (cleaned.length <= 5) {
+      return `+${cleaned.slice(0, 2)} ${cleaned.slice(2)}`;
+    } else if (cleaned.length <= 8) {
+      return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5)}`;
+    } else if (cleaned.length <= 10) {
+      return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8)}`;
+    } else {
+      return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8, 10)} ${cleaned.slice(10, 12)}`;
+    }
+  };
+  const handlePhoneNumberKeyDown = (e) => {
+    const { selectionStart } = e.target;
+    // Eğer imleç +90 kısmındaysa ve silme tuşuna basıldıysa engelle
+    if (selectionStart <= 4 && (e.key === "Backspace" || e.key === "Delete")) {
+      e.preventDefault();
+    }
+  };
+
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    if (name === "phoneNumber") {
+      // Telefon numarasını formatla
+      const formattedPhoneNumber = formatPhoneNumber(value);
+      setFormData({
+        ...formData,
+        [name]: formattedPhoneNumber,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
   };
 
   const validate = () => {
@@ -37,12 +72,11 @@ const Register = () => {
     } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
       newError.password = "Şifre en az bir noktalama işareti içermeli";
     }
-    
     if (formData.password !== formData.confirmPassword) {
       newError.confirmPassword = "Şifreler eşleşmiyor";
     }
     if (!formData.email || !/\S+@ogr\.inonu\.edu\.tr$/.test(formData.email)) newError.email = "Geçerli bir öğrenci e-posta adresi girin (@ogr.inonu.edu.tr)";
-    if (!formData.phoneNumber || !/^[0-9]{11}$/.test(formData.phoneNumber)) newError.phoneNumber = "Telefon numarası 11 haneli olmalı";
+    if (!formData.phoneNumber || !/^\+90 \d{3} \d{3} \d{2} \d{2}$/.test(formData.phoneNumber)) newError.phoneNumber = "Telefon numarası +90 xxx xxx xx xx formatında olmalı";
     if (!formData.studentNumber || !/^[0-9]{11}$/.test(formData.studentNumber)) newError.studentNumber = "Öğrenci numarası 11 haneli olmalı";
     if (!formData.faculty) newError.faculty = "Fakülte girişi gerekli";
     if (!formData.department) newError.department = "Bölüm girişi gerekli";
@@ -201,8 +235,10 @@ const Register = () => {
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleChange}
+                onKeyDown={handlePhoneNumberKeyDown} // +90 kısmını koru
                 error={!!error.phoneNumber}
                 helperText={error.phoneNumber}
+                required
                 sx={{ backgroundColor: 'white' }}
               />
             </Grid>
@@ -347,7 +383,6 @@ const Register = () => {
     </Box>
   );
 };
-
 const LoadingOverlay = () => (
   <Box
     sx={{
