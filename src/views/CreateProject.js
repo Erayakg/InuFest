@@ -131,6 +131,15 @@ const CreateProject = () => {
       isValid = false;
     }
 
+    // Üye sayısı kontrolü
+    if (formData.members.length < 2) {
+      tempErrors.members = 'En az 2 üye eklemelisiniz';
+      isValid = false;
+    } else if (formData.members.length > 5) {
+      tempErrors.members = 'En fazla 5 üye ekleyebilirsiniz';
+      isValid = false;
+    }
+
     // PDF dosyası kontrolü - zorunlu
     if (!formData.projectFile) {
       tempErrors.projectFile = 'Proje dosyası zorunludur';
@@ -145,6 +154,14 @@ const CreateProject = () => {
       setSnackbar({
         open: true,
         message: 'Sadece PDF formatında dosya yükleyebilirsiniz',
+        severity: 'error'
+      });
+      isValid = false;
+    } else if (formData.projectFile.size > 10 * 1024 * 1024) { // 10 MB limit
+      tempErrors.projectFile = 'Dosya boyutu 10 MB\'ı geçemez';
+      setSnackbar({
+        open: true,
+        message: 'Dosya boyutu 10 MB\'ı geçemez',
         severity: 'error'
       });
       isValid = false;
@@ -230,14 +247,45 @@ const CreateProject = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.type === 'application/pdf') {
-        setFormData(prev => ({
-          ...prev,
-          projectFile: file
-        }));
-        setFileError(null);
+        if (file.size <= 10 * 1024 * 1024) { // 10 MB limit
+          setFormData(prev => ({
+            ...prev,
+            projectFile: file
+          }));
+          setFileError(null);
+        } else {
+          setFileError('Dosya boyutu 10 MB\'ı geçemez');
+          e.target.value = '';
+        }
       } else {
         setFileError('Sadece PDF dosyaları kabul edilmektedir.');
         e.target.value = '';
+      }
+    }
+  };
+
+  const handleAddMember = () => {
+    if (formData.firstName && formData.lastName && formData.studentNumber && formData.email) {
+      if (formData.members.length < 5) {
+        setFormData(prev => ({
+          ...prev,
+          members: [...prev.members, {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            studentNumber: formData.studentNumber,
+            email: formData.email
+          }],
+          firstName: "",
+          lastName: "",
+          studentNumber: "",
+          email: ""
+        }));
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'En fazla 5 üye ekleyebilirsiniz',
+          severity: 'warning'
+        });
       }
     }
   };
@@ -383,23 +431,7 @@ const CreateProject = () => {
                     <Grid item xs={12}>
                       <Button
                         variant="outlined"
-                        onClick={() => {
-                          if (formData.firstName && formData.lastName && formData.studentNumber && formData.email) {
-                            setFormData(prev => ({
-                              ...prev,
-                              members: [...prev.members, {
-                                firstName: formData.firstName,
-                                lastName: formData.lastName,
-                                studentNumber: formData.studentNumber,
-                                email: formData.email
-                              }],
-                              firstName: "",
-                              lastName: "",
-                              studentNumber: "",
-                              email: ""
-                            }));
-                          }
-                        }}
+                        onClick={handleAddMember}
                         fullWidth
                       >
                         Üye Ekle
@@ -428,6 +460,12 @@ const CreateProject = () => {
                       />
                     ))}
                   </Grid>
+                )}
+
+                {errors.members && (
+                  <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                    {errors.members}
+                  </Typography>
                 )}
 
                 {/* Dosya Yükleme */}

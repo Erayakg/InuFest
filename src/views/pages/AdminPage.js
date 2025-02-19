@@ -51,6 +51,7 @@ const AdminPage = () => {
   };
 
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [error, setError] = useState({});
   const [openAssignDialog, setOpenAssignDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedMentor, setSelectedMentor] = useState('');
@@ -59,7 +60,7 @@ const AdminPage = () => {
     name: '',
     mail: '',
     categoryId: '',
-    phoneNumber: ''
+    phoneNumber: '+90 '
   });
   const [projectsWithMentor, setProjectsWithMentor] = useState([]);
   const [projectsWithoutMentor, setProjectsWithoutMentor] = useState([]);
@@ -99,6 +100,37 @@ const AdminPage = () => {
     refereeId: null,
     refereeName: ''
   });
+   // Telefon numarasını formatla
+   const formatPhoneNumber = (value) => {
+    // Sadece rakamları al
+    const cleaned = value.replace(/\D/g, "");
+    // +90 sabit kalsın, geri kalanı formatla
+    if (cleaned.length <= 2) {
+      return `+${cleaned}`;
+    } else if (cleaned.length <= 5) {
+      return `+${cleaned.slice(0, 2)} ${cleaned.slice(2)}`;
+    } else if (cleaned.length <= 8) {
+      return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5)}`;
+    } else if (cleaned.length <= 10) {
+      return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8)}`;
+    } else {
+      return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8, 10)} ${cleaned.slice(10, 12)}`;
+    }
+  };
+  const handlePhoneNumberKeyDown = (e) => {
+    const { selectionStart } = e.target;
+    // Eğer imleç +90 kısmındaysa ve silme tuşuna basıldıysa engelle
+    if (selectionStart <= 4 && (e.key === "Backspace" || e.key === "Delete")) {
+      e.preventDefault();
+    }
+  };
+  const validate = () => {
+    const newError = {};
+    if (!newMentorData.phoneNumber || !/^\+90 \d{3} \d{3} \d{2} \d{2}$/.test(newMentorData.phoneNumber)) newError.phoneNumber = "Telefon numarası +90 xxx xxx xx xx formatında olmalı";
+    
+    return newError;
+  
+  };
 
   useEffect(() => {
     fetchMentors();
@@ -278,14 +310,30 @@ const AdminPage = () => {
   };
 
   const handleMentorInputChange = (e) => {
-    setNewMentorData({
-      ...newMentorData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    if (name === "phoneNumber") {
+      // Telefon numarasını formatla
+      const formattedPhoneNumber = formatPhoneNumber(value);
+      setNewMentorData({
+        ...newMentorData,
+        [name]: formattedPhoneNumber,
+      });
+    } else {
+      setNewMentorData({
+        ...newMentorData,
+        [name]: value,
+      });
+    }
   };
 
   const handleAddMentor = async (e) => {
     e.preventDefault();
+    const newError = validate();
+    if (Object.keys(newError).length > 0) {
+      setError(newError);
+      return;
+    }
+    setError({});
     setIsLoading(prev => ({ ...prev, addMentor: true }));
     try {
       const response = await axios.post('/v1/referee/addReferee', newMentorData, config);
@@ -977,16 +1025,20 @@ const AdminPage = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Telefon"
-                    name="phoneNumber"
-                    value={newMentorData.phoneNumber}
-                    onChange={handleMentorInputChange}
-                    required
-                  />
-                </Grid>
+                <Grid item xs={6}>
+                 <TextField
+                   fullWidth
+                   label="Telefon Numarası"
+                   name="phoneNumber"
+                   value={newMentorData.phoneNumber}
+                   onChange={handleMentorInputChange}
+                   onKeyDown={handlePhoneNumberKeyDown} // +90 kısmını koru
+                   error={!!error.phoneNumber}
+                   helperText={error.phoneNumber}
+                   required
+                   sx={{ backgroundColor: 'white' }}
+                 />
+               </Grid>
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <LoadingButton
