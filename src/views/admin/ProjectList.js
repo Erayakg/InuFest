@@ -61,9 +61,8 @@ const ProjectList = () => {
   const [categories, setCategories] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [averageScores, setAverageScores] = useState({});
-  const [selectedFilterCategory, setSelectedFilterCategory] = useState('');
-  const [selectedFilterSubCategory, setSelectedFilterSubCategory] = useState('');
-  const [filterSubCategories, setFilterSubCategories] = useState([]);
+  const [subCategoryFilter, setSubCategoryFilter] = useState("all");
+  const [subCategories, setSubCategories] = useState([]);
   const [selectedSubCategory, setSelectedSubCategory] = useState('');
 
   // Fetch Projects
@@ -104,6 +103,46 @@ const ProjectList = () => {
 
     fetchCategories();
   }, []);
+
+
+  // Fetch Sub-Categories when Category Filter Changes
+  useEffect(() => {
+    const fetchSubCategories = async () => {
+      if (categoryFilter === "all") {
+        setSubCategories([]); // Eğer "Tümü" seçilirse alt kategorileri temizle
+        return;
+      }
+  
+      // Seçilen kategoriyi bul
+      const selectedCategory = categories.find(cat => cat.name === categoryFilter);
+      if (!selectedCategory) return;
+  
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`/v1/category/getSubCategories/${selectedCategory.id}`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+  
+        // API'den gelen veriyi işle
+        const categoryData = response.data.data.find(cat => cat.id === selectedCategory.id);
+        if (categoryData && categoryData.subCategories) {
+          console.log("Alt Kategoriler:", categoryData.subCategories);
+          setSubCategories(categoryData.subCategories); // Alt kategorileri state'e kaydet
+        } else {
+          setSubCategories([]); // Alt kategori yoksa state'i temizle
+        }
+      } catch (err) {
+        console.error('Alt kategoriler çekilirken hata oluştu:', err);
+      }
+    };
+  
+    fetchSubCategories();
+  }, [categoryFilter, categories]);
+
+
 
   // Fetch Average Scores
   useEffect(() => {
@@ -165,6 +204,11 @@ const ProjectList = () => {
 
         return project.subCategory?.id === parseInt(selectedSubCategory);
       })
+      .filter(project => {
+        // Alt kategori filtresi kontrolü
+        if (subCategoryFilter === "all") return true;
+        return project.category?.subCategoryResponse === subCategoryFilter;
+      })
       .sort((a, b) => {
         if (scoreSortOrder) {
           const scoreA = averageScores[a.id] || 0;
@@ -183,7 +227,7 @@ const ProjectList = () => {
         
         return 0; // No sorting if no order is selected
       });
-  }, [projects, searchQuery, mentorFilter, categoryFilter, selectedSubCategory, scoreSortOrder, dateSortOrder, averageScores]);
+  }, [projects, searchQuery, mentorFilter, categoryFilter, subCategoryFilter,selectedSubCategory, scoreSortOrder, dateSortOrder, averageScores]);
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedProjects.length / rowsPerPage);
@@ -211,31 +255,51 @@ const ProjectList = () => {
     setPage(1);
   };
 
-  const handleCategoryFilterChange = async (event) => {
-    const categoryName = event.target.value;
-    setCategoryFilter(categoryName);
-    setSelectedSubCategory(''); // Alt kategori seçimini sıfırla
+  const handleCategoryFilterChange = (event) => {
+    setCategoryFilter(event.target.value);
+    setSubCategoryFilter("all"); // Reset sub-category filter when category changes
     setPage(1);
-    
-    if (categoryName !== 'all') {
-      try {
-        const selectedCategory = categories.find(cat => cat.name === categoryName);
-        if (selectedCategory) {
-          const response = await axios.get(`/v1/category/getSubCategories/${selectedCategory.id}`, config);
-          const categoryData = response.data.data.find(cat => cat.id === selectedCategory.id);
-          if (categoryData && categoryData.subCategories) {
-            setFilterSubCategories(categoryData.subCategories);
-          } else {
-            setFilterSubCategories([]);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching sub-categories:', error);
-      }
-    } else {
-      setFilterSubCategories([]);
-    }
   };
+  const handleSubCategoryFilterChange = (event) => {
+    setSubCategoryFilter(event.target.value);
+    setPage(1);
+  };
+
+  useEffect(() => {
+    const fetchSubCategories = async () => {
+      if (categoryFilter === "all") {
+        setSubCategories([]); // Eğer "Tümü" seçilirse alt kategorileri temizle
+        return;
+      }
+  
+      // Seçilen kategoriyi bul
+      const selectedCategory = categories.find(cat => cat.name === categoryFilter);
+      if (!selectedCategory) return;
+  
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`/v1/category/getSubCategories/${selectedCategory.id}`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+  
+        // API'den gelen veriyi işle
+        const categoryData = response.data.data.find(cat => cat.id === selectedCategory.id);
+        if (categoryData && categoryData.subCategories) {
+          console.log("Alt Kategoriler:", categoryData.subCategories);
+          setSubCategories(categoryData.subCategories); // Alt kategorileri state'e kaydet
+        } else {
+          setSubCategories([]); // Alt kategori yoksa state'i temizle
+        }
+      } catch (err) {
+        console.error('Alt kategoriler çekilirken hata oluştu:', err);
+      }
+    };
+  
+    fetchSubCategories();
+  }, [categoryFilter, categories]);
 
   const handlePageChange = (event, newPage) => {
     setPage(newPage);
@@ -348,23 +412,16 @@ const ProjectList = () => {
         </Select>
       </FormControl>
 
-      <FormControl 
-        size="small" 
-        sx={{ minWidth: 200 }}
-        disabled={categoryFilter === "all"}
-      >
+      <FormControl size="small" sx={{ minWidth: 200 }} disabled={categoryFilter === "all"}>
         <InputLabel>Alt Kategori</InputLabel>
         <Select
-          value={selectedSubCategory}
+          value={subCategoryFilter}
           label="Alt Kategori"
-          onChange={(e) => {
-            setSelectedSubCategory(e.target.value);
-            setPage(1);
-          }}
+          onChange={handleSubCategoryFilterChange}
         >
-          <MenuItem value="">Tümü</MenuItem>
-          {filterSubCategories.map(subCategory => (
-            <MenuItem key={subCategory.id} value={subCategory.id}>
+          <MenuItem value="all">Tümü</MenuItem>
+          {subCategories.map(subCategory => (
+            <MenuItem key={subCategory.id} value={subCategory.name}>
               {subCategory.name}
             </MenuItem>
           ))}
