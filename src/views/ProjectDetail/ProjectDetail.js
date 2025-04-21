@@ -49,14 +49,23 @@ const ratingLabels = {
 };
 
 const criterionLabels = {
-  originality: 'Orijinallik',
-  innovation: 'Yenilik',
-  technicalProficiency: 'Teknik Yeterlilik',
+  projectSummaryIntro: 'Proje Özeti',
+  projectSummaryScope: 'Proje Konu Kapsamı',
+  teamIntroduction: 'Takım Tanıtımı',
+  literatureReview: 'Literatür Taraması',
+  problemAnalysisPart: 'Problem Analizi',
+  problemSolution: 'Çözüm Ürettiği Sorun',
+  solution: 'Çözüm',
+  methodologyPart: 'Yöntem',
   applicability: 'Uygulanabilirlik',
-  designFunctionality: 'Tasarım ve İşlevsellik',
-  impactPotential: 'Etkileşim Potansiyeli',
-  presentationCommunication: 'Sunum ve İletişim',
-  sustainability: 'Sürdürülebilirlik'
+  innovationValue: 'Yenilikçi (İnovatif) Yönü',
+  commercialization: 'Ticarileştirme Potansiyeli',
+  costEstimation: 'Tahmini Maliyet',
+  timeScheduling: 'Proje Zaman Planlaması',
+  targetAudience: 'Hedef Kitle',
+  swotAnalysis: 'Swot Analizi',
+  references: 'Referans / Kaynakça',
+  reportFormat: 'Rapor Düzeni'
 };
 
 const ProjectDetail = () => {
@@ -546,14 +555,109 @@ const ProjectDetail = () => {
                                 <Typography variant="body2" color="textSecondary" gutterBottom>
                                   <strong>Puan:</strong> {assessment.score}
                                 </Typography>
-                                <Typography variant="body2" color="textSecondary" gutterBottom>
-                                  <strong>Açıklama:</strong> {assessment.description}
-                                </Typography>
-                                {['originality', 'innovation', 'technicalProficiency', 'applicability', 'designFunctionality', 'impactPotential', 'presentationCommunication', 'sustainability'].map((criterion) => (
-                                  <Typography variant="body2" color="textSecondary" gutterBottom key={criterion}>
-                                    <strong>{criterionLabels[criterion]}:</strong> {ratingLabels[assessment[criterion]]?.score}
-                                  </Typography>
-                                ))}
+                                
+                                <Grid container spacing={2} sx={{ mt: 1 }}>
+                                  {/* Composite criteria - display with grouped sub-criteria */}
+                                  <Grid item xs={12} md={6}>
+                                    <Paper variant="outlined" sx={{ p: 1, bgcolor: 'background.paper' }}>
+                                      <Typography variant="body2" fontWeight="bold" color="primary" gutterBottom>
+                                        Proje Özeti / Proje Konu Kapsamı (0-8)
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.projectSummaryIntro}:</strong> {assessment.projectSummaryIntro}/4
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.projectSummaryScope}:</strong> {assessment.projectSummaryScope}/4
+                                      </Typography>
+                                    </Paper>
+                                  </Grid>
+                                  
+                                  <Grid item xs={12} md={6}>
+                                    <Paper variant="outlined" sx={{ p: 1, bgcolor: 'background.paper' }}>
+                                      <Typography variant="body2" fontWeight="bold" color="primary" gutterBottom>
+                                        Problem / Sorun (0-12)
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.problemAnalysisPart}:</strong> {assessment.problemAnalysisPart}/6
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.problemSolution}:</strong> {assessment.problemSolution}/6
+                                      </Typography>
+                                    </Paper>
+                                  </Grid>
+                                  
+                                  <Grid item xs={12} md={6}>
+                                    <Paper variant="outlined" sx={{ p: 1, bgcolor: 'background.paper' }}>
+                                      <Typography variant="body2" fontWeight="bold" color="primary" gutterBottom>
+                                        Yöntem ve Uygulanabilirlik (0-12)
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.methodologyPart}:</strong> {assessment.methodologyPart}/6
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.applicability}:</strong> {assessment.applicability}/6
+                                      </Typography>
+                                    </Paper>
+                                  </Grid>
+                                  
+                                  <Grid item xs={12} md={6}>
+                                    <Paper variant="outlined" sx={{ p: 1, bgcolor: 'background.paper' }}>
+                                      <Typography variant="body2" fontWeight="bold" color="primary" gutterBottom>
+                                        Yenilikçi Yönü ve Ticarileştirme (0-10)
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.innovationValue}:</strong> {assessment.innovationValue}/4
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.commercialization}:</strong> {assessment.commercialization}/6
+                                      </Typography>
+                                    </Paper>
+                                  </Grid>
+                                  
+                                  <Grid item xs={12} md={6}>
+                                    <Paper variant="outlined" sx={{ p: 1, bgcolor: 'background.paper' }}>
+                                      <Typography variant="body2" fontWeight="bold" color="primary" gutterBottom>
+                                        Maliyet ve Zaman (0-12)
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.costEstimation}:</strong> {assessment.costEstimation}/6
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.timeScheduling}:</strong> {assessment.timeScheduling}/6
+                                      </Typography>
+                                    </Paper>
+                                  </Grid>
+                                  
+                                  {/* Single criteria */}
+                                  <Grid item xs={12} md={6}>
+                                    <Paper variant="outlined" sx={{ p: 1, bgcolor: 'background.paper' }}>
+                                      <Typography variant="body2" fontWeight="bold" color="primary" gutterBottom>
+                                        Diğer Kriterler
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.teamIntroduction}:</strong> {assessment.teamIntroduction}/4
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.literatureReview}:</strong> {assessment.literatureReview}/6
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.solution}:</strong> {assessment.solution}/12
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.targetAudience}:</strong> {assessment.targetAudience}/4
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.swotAnalysis}:</strong> {assessment.swotAnalysis}/10
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.references}:</strong> {assessment.references}/4
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        <strong>{criterionLabels.reportFormat}:</strong> {assessment.reportFormat}/6
+                                      </Typography>
+                                    </Paper>
+                                  </Grid>
+                                </Grid>
                               </Box>
                             ))
                           ) : (
