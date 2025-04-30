@@ -507,7 +507,7 @@ const ProjectDetail = () => {
               <Divider sx={{ mb: 2 }} />
               
               {/* Değerlendirmeleri şimdilik gizle, ilerde göstermek için bu koşulu false'dan true'ya çekebilirsin */}
-              {true && (
+              {false && (
                 <>
                   {averageScore && (
                     <Box 
