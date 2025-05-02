@@ -84,52 +84,58 @@ const ProjectDetail = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileExists, setFileExists] = useState(false);
+  const [openFileDeleteDialog, setOpenFileDeleteDialog] = useState(false);
+  const [fileDeleteLoading, setFileDeleteLoading] = useState(false);
 
   const userRole = localStorage.getItem('role');
   const token = localStorage.getItem('token');
 
+  const fetchProjectData = async () => {
+    if (!token) {
+      setError('Authorization token not found');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const [projectResponse, refereesResponse, fileExistsResponse] = await Promise.all([
+        axios.get(`/v1/project/student/getProject/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }),
+        axios.get(`/v1/project-referees/by-project/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }),
+        axios.get(`/v1/project/ProjectFileIsExist/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+      
+      if (projectResponse.data.success) {
+        setProject(projectResponse.data.data);
+      } else {
+        setError('Proje bilgileri alınamadı');
+      }
+
+      setProjectReferees(refereesResponse.data);
+      setFileExists(fileExistsResponse.data.data);
+
+    } catch (err) {
+      setError('Proje yüklenirken bir hata oluştu');
+      console.error('Proje detay hatası:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchProjectData = async () => {
-      if (!token) {
-        setError('Authorization token not found');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const [projectResponse, refereesResponse] = await Promise.all([
-          axios.get(`/v1/project/student/getProject/${id}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }),
-          axios.get(`/v1/project-referees/by-project/${id}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-        ]);
-        
-        if (projectResponse.data.success) {
-          setProject(projectResponse.data.data);
-        } else {
-          setError('Proje bilgileri alınamadı');
-        }
-
-        // Log the referees response to verify data
-
-        // Hakem bilgilerini set et
-        setProjectReferees(refereesResponse.data);
-
-      } catch (err) {
-        setError('Proje yüklenirken bir hata oluştu');
-        console.error('Proje detay hatası:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProjectData();
   }, [id, token]);
 
@@ -216,6 +222,88 @@ const ProjectDetail = () => {
     } finally {
       setDeleteLoading(false);
       setOpenDialog(false);
+    }
+  };
+
+  const handleFileUpdate = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setUploadLoading(true);
+    try {
+      if (!token) {
+        throw new Error('Authorization token not found');
+      }
+
+      const formData = new FormData();
+      formData.append('projectFile', file);
+
+      await axios.put(
+        `/v1/project/student/updateProjectFile?projectId=${id}`,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      setSnackbar({
+        open: true,
+        message: 'Proje dosyası başarıyla güncellendi',
+        severity: 'success'
+      });
+
+      // Reset selected file
+      setSelectedFile(null);
+      // Reload project data
+      fetchProjectData();
+
+    } catch (error) {
+      console.error('Dosya güncelleme hatası:', error);
+      setSnackbar({
+        open: true,
+        message: 'Dosya güncellenirken bir hata oluştu',
+        severity: 'error'
+      });
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const handleFileDelete = async () => {
+    setFileDeleteLoading(true);
+    try {
+      if (!token) {
+        throw new Error('Authorization token not found');
+      }
+
+      await axios.delete(`/v1/project/delete-project-file/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      setSnackbar({
+        open: true,
+        message: 'Proje dosyası başarıyla silindi',
+        severity: 'success'
+      });
+
+      // Refresh file existence status
+      fetchProjectData();
+
+    } catch (error) {
+      console.error('Dosya silme hatası:', error);
+      setSnackbar({
+        open: true,
+        message: 'Dosya silinirken bir hata oluştu',
+        severity: 'error'
+      });
+    } finally {
+      setFileDeleteLoading(false);
+      setOpenFileDeleteDialog(false);
     }
   };
 
@@ -439,15 +527,52 @@ const ProjectDetail = () => {
                   <ListItemText 
                     primary="Proje Dosyası"
                     secondary={
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleDownload}
-                        disabled={downloadLoading}
-                        sx={{ mt: 1 }}
-                      >
-                        {downloadLoading ? 'İndiriliyor...' : 'Dosyayı İndir'}
-                      </Button>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+                        {fileExists ? (
+                          <>
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              onClick={handleDownload}
+                              disabled={downloadLoading}
+                            >
+                              {downloadLoading ? 'İndiriliyor...' : 'Dosyayı İndir'}
+                            </Button>
+                            
+                            {userRole === 'ROLE_ADMIN' && (
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                onClick={() => setOpenFileDeleteDialog(true)}
+                                disabled={fileDeleteLoading}
+                              >
+                                {fileDeleteLoading ? 'Siliniyor...' : 'Dosyayı Sil'}
+                              </Button>
+                            )}
+                          </>
+                        ) : (
+                          userRole === 'ROLE_STUDENT' && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <input
+                                type="file"
+                                accept=".pdf"
+                                style={{ display: 'none' }}
+                                id="project-file-update"
+                                onChange={handleFileUpdate}
+                              />
+                              <label htmlFor="project-file-update">
+                                <Button
+                                  variant="contained"
+                                  component="span"
+                                  disabled={uploadLoading}
+                                >
+                                  {uploadLoading ? 'Yükleniyor...' : 'Proje Dosyası Ekle'}
+                                </Button>
+                              </label>
+                            </Box>
+                          )
+                        )}
+                      </Box>
                     }
                   />
                 </ListItem>
@@ -790,6 +915,38 @@ const ProjectDetail = () => {
             startIcon={deleteLoading ? <CircularProgress size={20} /> : <DeleteIcon />}
           >
             {deleteLoading ? 'Siliniyor...' : 'Evet, Sil'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Proje Dosyası Silme Onay Dialog'u */}
+      <Dialog
+        open={openFileDeleteDialog}
+        onClose={() => setOpenFileDeleteDialog(false)}
+      >
+        <DialogTitle>
+          Proje Dosyasını Silmek İstediğinizden Emin misiniz?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Bu işlem geri alınamaz. Proje dosyası kalıcı olarak silinecektir.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setOpenFileDeleteDialog(false)} 
+            disabled={fileDeleteLoading}
+          >
+            İptal
+          </Button>
+          <Button 
+            onClick={handleFileDelete} 
+            color="error" 
+            variant="contained"
+            disabled={fileDeleteLoading}
+            startIcon={fileDeleteLoading ? <CircularProgress size={20} /> : <DeleteIcon />}
+          >
+            {fileDeleteLoading ? 'Siliniyor...' : 'Evet, Sil'}
           </Button>
         </DialogActions>
       </Dialog>
